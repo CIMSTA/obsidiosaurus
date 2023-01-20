@@ -65,4 +65,4 @@ Overview about what is currently supported:
 If you need more info, help or want to provide general feedback, join the CIMSTA Discord Channel.
 
 # ✍ Author
-Mat4m0 - Matthias
+[Mat4m0](https://github.com/Mat4m0) - Matthias
