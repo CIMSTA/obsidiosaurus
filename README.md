@@ -19,6 +19,10 @@ It allows for a better exeperience writing and maintaining the markdownfiles, si
 
 Currently its heavily in WIP and with manual steps, but goal is to automate this workflow as good as possible.
 
+# Repo Structure
+
+::Overview of Folder structure
+
 # Features:
 
 Here is an overview about what is currently supported:
@@ -37,8 +41,9 @@ Here is an overview about what is currently supported:
 - Head Metadata: ✔
 
 ## Assets
-- Images: ✔
+- Images: ✔ (.png & .svg)
 - Themed Images: ✔ (light & dark mode)
+- Files: ✔ (.pdf, .docx, ..)
 
 ## Drawings & Diagrams
 - Excalidraw: ✔ (light & dark mode)
@@ -50,9 +55,4 @@ Here is an overview about what is currently supported:
 
 ## Advanced
 - Docusaurus Tabs: ❌
-- MDX Support: ✔
-
-# Repo Structure
-
-::Overview of Folder structure
-
+- MDX Support: ❌
