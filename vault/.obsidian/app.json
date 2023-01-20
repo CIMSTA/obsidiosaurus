@@ -1,7 +1,8 @@
 {
   "promptDelete": false,
-  "attachmentFolderPath": "Assets",
+  "attachmentFolderPath": "Untitled",
   "newLinkFormat": "relative",
   "useMarkdownLinks": true,
-  "showUnsupportedFiles": false
+  "showUnsupportedFiles": false,
+  "alwaysUpdateLinks": true
 }

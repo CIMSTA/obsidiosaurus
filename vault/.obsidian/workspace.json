@@ -4,26 +4,47 @@
     "type": "split",
     "children": [
       {
-        "id": "cae9f7329c0efcd6",
+        "id": "6e11e5df35c8c6a1",
         "type": "tabs",
         "children": [
           {
-            "id": "94a7ae5fcbee3773",
+            "id": "c392a4907f7b7bd0",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {}
+              "type": "markdown",
+              "state": {
+                "file": "Setup.md",
+                "mode": "source",
+                "source": false
+              }
             }
           },
           {
-            "id": "3b001a7c15a74142",
+            "id": "588e7eec9403000d",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {}
+              "type": "markdown",
+              "state": {
+                "file": "features/i18n.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "a2e0e883cb44e954",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "features/multiple sidebars.md",
+                "mode": "source",
+                "source": false
+              }
             }
           }
         ],
+        "currentTab": 1,
         "stacked": true
       }
     ],
@@ -91,6 +112,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "features/i18n.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -107,6 +129,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "features/i18n.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -128,7 +151,9 @@
             "type": "leaf",
             "state": {
               "type": "outline",
-              "state": {}
+              "state": {
+                "file": "features/i18n.md"
+              }
             }
           }
         ]
@@ -145,20 +170,23 @@
       "canvas:Create new canvas": false,
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
-      "command-palette:Open command palette": false
+      "command-palette:Open command palette": false,
+      "obsidian-excalidraw-plugin:New Excalidraw drawing": false,
+      "table-editor-obsidian:Advanced Tables Toolbar": false,
+      "templater-obsidian:Templater": false
     }
   },
-  "active": "94a7ae5fcbee3773",
+  "active": "588e7eec9403000d",
   "lastOpenFiles": [
-    "Documentation/Documentation Recorder.md",
-    "Documentation/Software/Docusaurus.md",
-    "Knowledge Base/Company Knowledge Management.md",
-    "Software Recommendation/Feedback.md",
-    "Clients/Scaffplan/Scaffplan Overview.md",
-    "Marketing/SEO/Website SEO.md",
-    "Tekla/Awesome Tekla.md",
-    "E-learning/E-learning done right.md",
-    "E-learning/E-learning Best practices.md",
-    "Documentation/Software/Untitled.md"
+    "features/multiple sidebars.md",
+    "features/i18n.md",
+    "Setup.md",
+    "readme.md",
+    "features/11. mermaid.md",
+    "features/10. diagrams.net.md",
+    "features/9. excalidraw.md",
+    "features/8. math-equations.md",
+    "features/5. front-matter.md",
+    "features/6. quotes.md"
   ]
 }
