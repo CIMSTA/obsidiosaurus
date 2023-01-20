@@ -30,26 +30,26 @@ Watch a video showing quickly the features
 # 📃 Features:
 Overview about what is currently supported:
 
-## 🟢 General
+## General
 - Documentation: ✔
 - Blog: 🚧 
 - Localisation i18n: ✔
 - Multiple Sidebars: ✔
 - Versioning: 🚧
 
-## 🟡 Standard Formating
+## Standard Formating
 - Links: ✔
 - Tables: ✔
 - iFrames: 🚧
 - Codeblocks: ✔
 - Head Metadata: ✔
 
-## 🔴 Assets
+## Assets
 - Images: ✔ (.png & .svg)
 - Themed Images: ✔ (light & dark mode)
 - Files: ✔ (.pdf, .docx, ..)
 
-## 🔵 Drawings & Diagrams
+## Drawings & Diagrams
 - Excalidraw: ✔ (light & dark mode)
 - diagrams.net ✔ (light only mode)
 - Math Equaitons ✔
@@ -57,7 +57,7 @@ Overview about what is currently supported:
 - UML Diagrams: ❌ (not supported in Docusaurus)
 - D2 Diagrams: ❌ (not supported in Docusaurus)
 
-## 🟣 Advanced
+## Advanced
 - Docusaurus Tabs: ❌ (not supported in Obsidian)
 - MDX Support: ❌ (not supported in Obsidian)
 
