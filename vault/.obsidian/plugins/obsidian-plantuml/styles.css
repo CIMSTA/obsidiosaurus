@@ -1,0 +1,38 @@
+.puml-settings-area {
+    margin-left: 5px;
+    margin-right: 5px;
+    font-size: 14px;
+    width: 100%;
+}
+
+.plantuml-source-view .cm-activeLine {
+    background-color: unset !important;
+}
+
+.plantuml-source-view .cm-gutters {
+    background-color: unset !important;
+}
+
+.plantuml-source-view .cm-cursor {
+    border-left: 1.2px solid var(--text-muted);
+}
+
+.plantuml-source-view .cm-selectionBackground {
+    background-color: var(--text-selection) !important;
+}
+
+.puml-loading {
+    color: var(--text-accent);
+}
+
+.internal-embed.file-embed[src$=".puml"] {
+    display: none;
+}
+
+.internal-embed.file-embed[src$=".pu"] {
+    display: none;
+}
+
+.puml-error {
+    color: var(--text-error);
+}

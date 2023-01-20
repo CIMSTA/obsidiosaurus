@@ -1,0 +1,164 @@
+{
+  "main": {
+    "id": "926cadf0d3f37e28",
+    "type": "split",
+    "children": [
+      {
+        "id": "cae9f7329c0efcd6",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "94a7ae5fcbee3773",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {}
+            }
+          },
+          {
+            "id": "3b001a7c15a74142",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {}
+            }
+          }
+        ],
+        "stacked": true
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "384c1cccd36fbe8b",
+    "type": "split",
+    "children": [
+      {
+        "id": "e12660f94a03344b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5ab15cccb34f3a34",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "91be5fc82aaa151a",
+            "type": "leaf",
+            "state": {
+              "type": "starred",
+              "state": {}
+            }
+          },
+          {
+            "id": "bc660c89074bc294",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          }
+        ],
+        "currentTab": 2
+      }
+    ],
+    "direction": "horizontal",
+    "width": 690.5
+  },
+  "right": {
+    "id": "7cda01100b2b7a73",
+    "type": "split",
+    "children": [
+      {
+        "id": "447a127f3c7a366b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d44e8edc69b83f10",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "49d2154c34212a5f",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "a39d748fb6fdb23e",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "1351e6bc40b62c85",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "94a7ae5fcbee3773",
+  "lastOpenFiles": [
+    "Documentation/Documentation Recorder.md",
+    "Documentation/Software/Docusaurus.md",
+    "Knowledge Base/Company Knowledge Management.md",
+    "Software Recommendation/Feedback.md",
+    "Clients/Scaffplan/Scaffplan Overview.md",
+    "Marketing/SEO/Website SEO.md",
+    "Tekla/Awesome Tekla.md",
+    "E-learning/E-learning done right.md",
+    "E-learning/E-learning Best practices.md",
+    "Documentation/Software/Untitled.md"
+  ]
+}

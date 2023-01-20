@@ -1,0 +1,8 @@
+{
+  "server_url": "https://www.plantuml.com/plantuml",
+  "header": "",
+  "debounce": 3,
+  "localJar": "",
+  "javaPath": "java",
+  "defaultProcessor": "svg"
+}
