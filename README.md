@@ -1,7 +1,7 @@
 
 <h1 align="center">
   <a href=""><img width="96" src="/docs/static/img/logo.svg" alt="Obisidiosaurus"></a><br>
-  Leon
+  Obisidiosaurus
 </h1>
 
 _<p align="center">Obsidian + Docusaurus = Where notes meet website</p>_
