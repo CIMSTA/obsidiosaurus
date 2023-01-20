@@ -11,23 +11,23 @@ _<p align="center">Obsidian + Docusaurus = Where notes meet website</p>_
   <a href=""><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" /></a>
   </p>
 
-# Introduction
+# 👋 Introduction
 
 Obsidiosaurus is a converter for [Obsidian](https://obsidian.md/) notes to the static site builder [Docusaurus](https://docusaurus.io/)
 It allows for a better exeperience writing and maintaining the markdownfiles, since both share alot of common featues.
 Currently its just a proof of concept with manual steps required, but the goal is to automate this workflow completly.
 
-# Repo Structure
+# 🗃 Repo Structure
 
 ::Overview of Folder structure
 
-# Documentation
+# 📚 Documentation
 For full documentation, visit our Docs
 
-# Video
+# 🎥 Video
 Watch a video showing quickly the features
 
-# Features:
+# 📃 Features:
 Overview about what is currently supported:
 
 ## General
@@ -61,8 +61,8 @@ Overview about what is currently supported:
 - Docusaurus Tabs: ❌ (not supported in Obsidian)
 - MDX Support: ❌ (not supported in Obsidian)
 
-# Need help?
+# 💭 Need help?
 If you need more info, help or want to provide general feedback, join the CIMSTA Discord Channel.
 
-# Author
+#  Author
 Mat4m0 - Matthias
