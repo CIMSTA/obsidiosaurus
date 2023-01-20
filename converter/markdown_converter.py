@@ -13,8 +13,9 @@ sidebars = ["Tekla", "Revit"]
 i18n_supported: bool = True
 language_separator: str = "__"
 main_language: str = "en"
-main_language_code: str = ""
 secondary_languages = ["de", "fr", "es"]
+
+main_language_code: str = ""
 secondary_languages_codes = []
 
 # Function  variables

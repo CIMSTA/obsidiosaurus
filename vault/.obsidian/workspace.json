@@ -13,38 +13,25 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Setup.md",
+                "file": "sidebar1/feature_overview.md",
                 "mode": "source",
                 "source": false
               }
             }
           },
           {
-            "id": "588e7eec9403000d",
+            "id": "a138e19baea3a463",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "features/i18n.md",
-                "mode": "source",
-                "source": false
-              }
-            }
-          },
-          {
-            "id": "a2e0e883cb44e954",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "features/multiple sidebars.md",
+                "file": "sidebar1/readme.md",
                 "mode": "source",
                 "source": false
               }
             }
           }
         ],
-        "currentTab": 1,
         "stacked": true
       }
     ],
@@ -112,7 +99,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "features/i18n.md",
+                "file": "sidebar1/feature_overview.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -129,7 +116,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "features/i18n.md",
+                "file": "sidebar1/feature_overview.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -152,7 +139,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "features/i18n.md"
+                "file": "sidebar1/feature_overview.md"
               }
             }
           }
@@ -176,17 +163,17 @@
       "templater-obsidian:Templater": false
     }
   },
-  "active": "588e7eec9403000d",
+  "active": "c392a4907f7b7bd0",
   "lastOpenFiles": [
-    "features/multiple sidebars.md",
-    "features/i18n.md",
-    "Setup.md",
-    "readme.md",
-    "features/11. mermaid.md",
-    "features/10. diagrams.net.md",
-    "features/9. excalidraw.md",
-    "features/8. math-equations.md",
-    "features/5. front-matter.md",
-    "features/6. quotes.md"
+    "sidebar1/readme.md",
+    "sidebar1/feature_overview.md",
+    "sidebar1/Getting started/Untitled.md",
+    "sidebar1/features/5. localisation.md",
+    "sidebar1/features/4. assets.md",
+    "sidebar1/features/2. links__de.md",
+    "sidebar1/features/2. links__en.md",
+    "sidebar1/Setup.md",
+    "sidebar1/features/13. mermaid.md",
+    "sidebar1/features/11. math-equations.md"
   ]
 }
