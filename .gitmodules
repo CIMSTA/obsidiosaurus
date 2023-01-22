@@ -1,0 +1,3 @@
+[submodule "obsidiosaurus_vault"]
+	path = obsidiosaurus_vault
+	url = https://github.com/CIMSTA/obsidiosaurus_vault
