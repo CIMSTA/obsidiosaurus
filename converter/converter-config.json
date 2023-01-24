@@ -1,0 +1,18 @@
+{
+	// Automatic copy to Docusaurus
+	"automatic_copy": true
+	
+	// Sidebars
+    "multi_sidebar": true,
+    "sidebars": ["Sidebar1", "Sidebar2"],
+	// Blog
+	"blog_support": true
+	// Versioning
+	"versioning_support": true
+	
+	// i18 Support
+    "i18n_supported": true,
+    "language_separator": "__",
+    "main_language": "en",
+    "secondary_languages": ["de", "fr", "es"],
+}

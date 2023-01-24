@@ -24,11 +24,14 @@ convert_diagrams: bool = True
 convert_excalidraw: bool = True
 convert_adomonition: bool = True
 
-def main(secondary_language_code=None):
+def main():
+    # Path to your Obsidian vault
     input_directory = "F:/doci_test"
+
+    # Path to your Docusaurus installation
     output_directory = "G:/CIMSTA/docs"
 
-    # Language Code Setup
+    # Dynamic language code Setup
     for language in secondary_languages:
         secondary_languages_codes.append(language_separator + language)
     main_language_code = language_separator + main_language
