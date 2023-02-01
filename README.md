@@ -66,7 +66,7 @@ Overview about what is currently supported:
 - MDX Support: ❌ (not supported in Obsidian)
 
 # 💭 Need help?
-If you need more info, help or want to provide general feedback, join the CIMSTA Discord Channel.
+If you need more info, help or want to provide general feedback, join the [CIMSTA Discord Channel](https://discord.gg/SSGK5tuqJh).
 
 # ✍ Author
 [Mat4m0](https://github.com/Mat4m0) - Matthias
