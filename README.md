@@ -1,6 +1,6 @@
 
 <h1 align="center">
-  <a href=""><img width="124" src="/docusaurus/static/img/logo.svg" alt="Obisidiosaurus"></a><br>
+  <a href=""><img width="124" src="/logo.svg" alt="Obisidiosaurus"></a><br>
   Obisidiosaurus
 </h1>
 
