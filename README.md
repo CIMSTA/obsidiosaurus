@@ -34,22 +34,26 @@ Overview about what is currently supported:
 
 ## General
 - Documentation: ✅
-- Blog: 🚧 
+- Blog: ✅ 
+- Multiple Blogs: ✅ 
 - Localisation i18n: ✅
 - Multiple Sidebars: ✅
-- Versioning: 🚧
+- Versioning: ⛔ (to complex)
 
 ## Standard Formating
 - Links: ✅
 - Tables: ✅
 - Admoninitions: ✅
-- iFrames: 🚧
+- Quotes: ✅
+- iFrames: ✅
 - Codeblocks: ✅
 - Head Metadata: ✅
 - Checklists: ✅
 
 ## Assets
 - Images: ✅ (.png & .svg)
+- Image resize: ✅
+- Image converter: ✅ (.jpg, .png, .webp)
 - Themed Images: ✅ (light & dark mode)
 - Files: ✅ (.pdf, .docx, ..)
 
