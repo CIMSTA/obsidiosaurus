@@ -514,7 +514,7 @@ def convert_svg(line):
     if ".svg]]" in line:
         match = re.search(r"(.+/)(.+)(\.svg)", line)
         file_name = match.group(2)
-        file_name = re.sub(" ", "_", file_name)
+        file_name = re.sub(" ", "-", file_name)
         line = "![](/" + DST_ASSET_SUBFOLDER + "/" + file_name + ".svg)\n"
     return line
 

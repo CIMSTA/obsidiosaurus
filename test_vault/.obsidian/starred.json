@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "type": "file",
+      "title": "Untitled",
+      "path": "Untitled.canvas"
+    },
+    {
+      "type": "search",
+      "title": "path:",
+      "query": "path:"
+    }
+  ]
+}
