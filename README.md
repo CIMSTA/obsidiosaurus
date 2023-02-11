@@ -38,7 +38,7 @@ Overview about what is currently supported:
 - Multiple Blogs: ✅ 
 - Localisation i18n: ✅
 - Multiple Sidebars: ✅
-- Versioning: ⛔ (to complex)
+- Versioning: ⛔ (kinda complex)
 
 ## Standard Formating
 - Links: ✅
