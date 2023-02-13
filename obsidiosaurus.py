@@ -255,11 +255,12 @@ def check_language(name):
 
 def convert_file(input_file, output_file):
     # Open the input file and read it line by line
-    with open(input_file, "r") as file:
+    with open(input_file, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
+
     # Open the output file
-    with open(output_file, "w") as file:
+    with open(output_file, "w", encoding="utf-8") as file:
         in_admonition, in_quote = False, False
         sidebar_checked = False
 
