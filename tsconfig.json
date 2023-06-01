@@ -10,7 +10,6 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "isolatedModules": true,
-    "outDir": "../obsidiosaurus/",
     "allowSyntheticDefaultImports": true,
 	"strictNullChecks": true,
     "lib": [
