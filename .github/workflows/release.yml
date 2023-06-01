@@ -31,4 +31,4 @@ jobs:
           gh release create "$tag" \
             --title="$tag" \
             --draft \
-            main.js manifest.json styles.css obsidiosaurus.py src/utils.py src/rel_path.py src/__init__.py src/asset_processing src/dir_processing.py src/directory_cleanup.py src/image_converter.py src/md_processing.py
+            main.js manifest.json styles.css obsidiosaurus.py src/utils.py src/rel_path.py src/__init__.py src/asset_processing.py src/dir_processing.py src/directory_cleanup.py src/image_converter.py src/md_processing.py
