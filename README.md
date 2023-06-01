@@ -17,18 +17,6 @@ Obsidiosaurus is a converter for [Obsidian](https://obsidian.md/) markdown notes
 
 It allows for a better exeperience writing and maintaining the markdown files, since both share alot of common featues.
 
-Currently its just a proof of concept with manual steps required, but the goal is to automate this workflow completly.
-
-# 🗃 Repo Structure
-
-::Overview of Folder structure
-
-# 📚 Documentation
-For full documentation, visit our Docs
-
-# 🎥 Video
-Watch a video showing quickly the features
-
 # 📃 Features:
 Overview about what is currently supported:
 
