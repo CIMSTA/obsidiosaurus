@@ -1,45 +1,11 @@
-import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { exec } from 'child_process';
-import path from 'path';
+import { App, Plugin, PluginSettingTab, Setting, Notice } from 'obsidian';
+import obsidiosaurusProcess from 'src/processor'
+import { Config } from 'src/types'
+import pino from 'pino';
 
-function runPythonScript(currentFolderPath: string) {
-  // Concatenate the folder path with the filename
-  const scriptFileName: string = path.join(currentFolderPath, '.obsidian', 'plugins', 'obsidiosaurus', 'obsidiosaurus.py');
+export const logger = pino();
 
-  exec(`python ${scriptFileName} "${currentFolderPath}"`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing script.py: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Error output: ${stderr}`);
-      return;
-    }
-    console.log(`Script output: ${stdout}`);
-  });
-}
-
-
-  // Call the runPythonScript function when you want to execute the Python script.
-  
-interface ObsidiosaurusSettings {
-	obsidian_vault_directory: string,
-	docusaurus_directory: string,
-	ignored_folders: string,
-	obsidian_asset_folder_name: string,
-	docusaurus_asset_subfolder_name: string,
-	i18n_supported: boolean,
-	language_separator: string,
-	main_language: string,
-	secondary_languages: string,
-	convert_images: boolean,
-	converted_image_type: string,
-	converted_image_max_width: string,
-	excalidraw: boolean,
-	diagram: boolean,
-}
-
-const OBSIDIOSAURUS_SETTINGS: ObsidiosaurusSettings = {
+export const config: Config = {
 	obsidian_vault_directory: "./vault",
 	docusaurus_directory: "./docusaurus",
 	ignored_folders: ".git,.obsidian",
@@ -54,37 +20,46 @@ const OBSIDIOSAURUS_SETTINGS: ObsidiosaurusSettings = {
 	converted_image_max_width: "2500",
 	excalidraw: false,
 	diagram: false,
+	debug: true
 }
-
-
 export default class Obsidisaurus extends Plugin {
-	settings: ObsidiosaurusSettings;
+	settings: Config;
 
 	async onload() {
 		await this.loadSettings();
-		const basePath = (this.app.vault.adapter as any).basePath
+		if (config.debug) {
+			logger.info("🟢 Obsidiosaurus Plugin loaded");
+		}
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-			runPythonScript(basePath);
-
+		const ribbonIconEl = this.addRibbonIcon('file-up', 'Sample Plugin', async (evt: MouseEvent) => {
+			try {
+				logger.info("🚀 Obsidiosaurus started");
+				new Notice("🚀 Obsidiosaurus started")
+				// @ts-ignore, it says there is no property basePath, but it is?
+				const basePath: string = this.app.vault.adapter.basePath;
+				await obsidiosaurusProcess(basePath)
+				logger.info("✅ Obsidiosaurus run successfully");
+				new Notice("✅ Obsidiosaurus run successfully")
+			} catch (error) {
+				logger.error(`❌ Obsidiosaurus crashed with error message: \n${error} `);
+				new Notice("❌ Obsidiosaurus crashed. \n Check log files for more info")
+			}
 		});
-		// Perform additional things with the ribbon
+
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SettingTab(this.app, this));
 
 	}
 
 	onunload() {
-
+		if (config.debug) {
+			logger.info('⚪ Obsidiosaurus Plugin unloaded');
+		}
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, OBSIDIOSAURUS_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, config, await this.loadData());
 	}
 
 	async saveSettings() {
@@ -245,6 +220,7 @@ class SettingTab extends PluginSettingTab {
 					this.plugin.settings.secondary_languages = value;
 					await this.plugin.saveSettings();
 				}));
-	
+
+	}
 }
-}
+
