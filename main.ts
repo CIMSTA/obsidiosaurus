@@ -7,8 +7,7 @@ export const logger = pino();
 
 export const config: Config = {
 	obsidian_vault_directory: "./vault",
-	docusaurus_directory: "./docusaurus",
-	ignored_folders: ".git,.obsidian",
+	docusaurus_directory: "./website",
 	obsidian_asset_folder_name: "assets",
 	docusaurus_asset_subfolder_name: "assets",
 	i18n_supported: true,
@@ -31,7 +30,7 @@ export default class Obsidisaurus extends Plugin {
 			logger.info("🟢 Obsidiosaurus Plugin loaded");
 		}
 
-		const ribbonIconEl = this.addRibbonIcon('file-up', 'Sample Plugin', async (evt: MouseEvent) => {
+		const ribbonIconEl = this.addRibbonIcon('file-up', 'Obsidiosaurus', async (evt: MouseEvent) => {
 			try {
 				logger.info("🚀 Obsidiosaurus started");
 				new Notice("🚀 Obsidiosaurus started")
@@ -102,16 +101,6 @@ class SettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.docusaurus_directory)
 				.onChange(async (value) => {
 					this.plugin.settings.docusaurus_directory = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
-			.setName('Ignored Folders')
-			.setDesc('List of folders you dont want to publish')
-			.addText(text => text
-				.setPlaceholder('Enter folders')
-				.setValue(this.plugin.settings.ignored_folders)
-				.onChange(async (value) => {
-					this.plugin.settings.ignored_folders = value;
 					await this.plugin.saveSettings();
 				}));
 
