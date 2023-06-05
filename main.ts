@@ -1,5 +1,5 @@
 import { App, Plugin, PluginSettingTab, Setting, Notice } from 'obsidian';
-import obsidiosaurusProcess from 'src/processor'
+import obsidiosaurusProcess from 'src/mainProcessor'
 import { Config } from 'src/types'
 import pino from 'pino';
 
@@ -37,8 +37,6 @@ export default class Obsidisaurus extends Plugin {
 				// @ts-ignore, it says there is no property basePath, but it is?
 				const basePath: string = this.app.vault.adapter.basePath;
 				await obsidiosaurusProcess(basePath)
-				logger.info("✅ Obsidiosaurus run successfully");
-				new Notice("✅ Obsidiosaurus run successfully")
 			} catch (error) {
 				logger.error(`❌ Obsidiosaurus crashed with error message: \n${error} `);
 				new Notice("❌ Obsidiosaurus crashed. \n Check log files for more info")
