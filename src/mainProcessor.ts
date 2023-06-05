@@ -340,7 +340,7 @@ async function getFilesToDelete(allSourceFilesInfo: Partial<SourceFileInfo>[], t
             if (config.debug) {
                 logger.info('🗑️ File to delete: %s', targetFile.pathSourceRelative);
             }
-        } else if (sourceDate && sourceDate > targetDate) {
+        } else if (sourceDate && sourceDate != targetDate) {
             filesToDelete.push({ index: i, reason: `its last modification date ${targetDate} is older than the date in sourceJson ${sourceDate}` });
             if (config.debug) {
                 logger.info('🔄 File to update: %s', targetFile.pathSourceRelative);
