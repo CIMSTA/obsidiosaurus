@@ -10,86 +10,30 @@ import { config } from "main";
 
 import * as readline from 'readline';
 
-
-function syncFunction(): void {
-    console.log("Sync function called");
-}
-
-async function asyncFunction(): Promise<void> {
-    console.log("Async function called");
-    await waitForSeconds(2); // Wait for 2 seconds
-    console.log("Async function completed");
-}
-
-async function asyncFunction1(): Promise<void> {
-    console.log("Async function 1 called");
-    await waitForSeconds(3); // Wait for 3 seconds
-    console.log("Async function 1 completed");
-}
-
-async function asyncFunction2(): Promise<void> {
-    console.log("Async function 2 called");
-    await waitForSeconds(1); // Wait for 1 second
-    console.log("Async function 2 completed");
-}
-
-async function asyncFunction3(): Promise<void> {
-    console.log("Async function 3 called");
-    await waitForSeconds(4); // Wait for 4 seconds
-    console.log("Async function 3 completed");
-}
-
-
-export default function obsidiosaurusProcess(basePath: string): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-
-        // GET MAIN FOLDERS
-        const mainFolders: MainFolder[] = getMainfolders(basePath);
-
-        // GET ALL FILES FROM MAIN FOLDERS
+export default async function obsidiosaurusProcess(basePath: string): Promise<boolean> {
+    
+        // Get main folders and files
+        const mainFolders = getMainfolders(basePath);
         mainFolders.forEach(folder => processSingleFolder(folder, basePath));
 
         if (config.debug) {
             logger.info('📁 Folder structure with Files: %s', JSON.stringify(mainFolders));
         }
 
-        // GET ALL FILE INFO FROM MAIN FOLDERS
-        const allSourceFilesInfo: Partial<SourceFileInfo>[] = [];
-        const allSourceAssetsInfo: Partial<SourceFileInfo>[] = [];
+        // Extract file info
         const allInfo = mainFolders.flatMap(folder => folder.files.map(file => getSourceFileInfo(basePath, folder, file)));
+        
+        // Separate assets from other files
+        const allSourceFilesInfo = allInfo.filter(info => info.type !== 'assets');
+        const allSourceAssetsInfo = allInfo.filter(info => info.type === 'assets');
 
-        allInfo.forEach(info => {
-            if (info.type === 'assets') {
-                allSourceAssetsInfo.push(info);
-            } else {
-                allSourceFilesInfo.push(info);
-            }
-        });
+        // Write to files
+        await Promise.all([
+            fs.promises.writeFile('allFilesInfo.json', JSON.stringify(allSourceFilesInfo, null, 2)),
+            fs.promises.writeFile('allAssetsInfo.json', JSON.stringify(allSourceAssetsInfo, null, 2))
+        ]);
 
-        fs.writeFileSync('allFilesInfo.json', JSON.stringify(allSourceFilesInfo, null, 2));
-        fs.writeFileSync('allAssetsInfo.json', JSON.stringify(allSourceAssetsInfo, null, 2));
-
-        syncFunction();
-        asyncFunction()
-            .then(() => {
-                const promises = [asyncFunction1(), asyncFunction2(), asyncFunction3()];
-                return Promise.all(promises);
-            })
-            .then(() => {
-                resolve(true);
-            })
-            .catch(() => {
-                resolve(false);
-            });
-    });
-}
-
-async function waitForSeconds(seconds: number): Promise<void> {
-    return new Promise<void>((resolve) => {
-        setTimeout(() => {
-            resolve();
-        }, seconds * 1000);
-    });
+        return true;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -238,10 +182,10 @@ function sanitizeFileName(fileName: string): { fileNameClean: string, fileExtens
 
 
 function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>): Partial<SourceFileInfo> {
-    const { type, language, pathSourceRelative, mainFolder, parentFolder } = sourceFileInfo;
+    const { type, language, pathSourceRelative, mainFolder, parentFolder, fileExtension } = sourceFileInfo;
     const docusaurusRelativePathToVault = `..\\${config.docusaurus_directory}\\`;
 
-    if (!type || !language || !pathSourceRelative) {
+    if (!type || !language || !pathSourceRelative || !parentFolder || !fileExtension || !mainFolder) {
         logger.error('🚨 Required properties missing on sourceFileInfo');
         throw new Error('Missing required properties on sourceFileInfo');
     }
@@ -266,11 +210,31 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>): Partial<SourceF
 
     let finalPathSourceRelative = pathSourceRelative;
 
-    // Remove parent folder from path if ends with "+"
-    if (parentFolder?.endsWith('+')) {
-        finalPathSourceRelative = finalPathSourceRelative.replace(`${parentFolder}\\`, "");
-        if (config.debug) {
-            logger.info('🔧 Removed Parent Folder: New Path: %s', finalPathSourceRelative);
+    
+    if (parentFolder.endsWith('+')) {
+
+        const pathParts = finalPathSourceRelative.split("\\");
+    
+        pathParts.pop();
+        console.log(pathParts)
+
+        if (pathParts.length > 0) {
+ 
+            let lastPart = pathParts[pathParts.length - 1];
+            console.log(lastPart)
+    
+            // Remove '+' from the end of the parent folder
+            if (lastPart.endsWith('+')) {
+                lastPart = lastPart.slice(0, -1); 
+                console.log(lastPart)
+                pathParts[pathParts.length - 1] = lastPart;  // update the lastpart in the path array
+            }
+    
+            finalPathSourceRelative = pathParts.join("\\") + fileExtension;
+    
+            if (config.debug) {
+                logger.info('🔧 Removed Parent Folder: New Path: %s', finalPathSourceRelative);
+            }
         }
     }
 
@@ -289,3 +253,5 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>): Partial<SourceF
 
     return sourceFileInfo;
 }
+
+
