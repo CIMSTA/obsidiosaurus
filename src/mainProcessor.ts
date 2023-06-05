@@ -1,4 +1,5 @@
 import { MainFolder, SourceFileInfo } from "./types";
+import processMarkdown from "./markdownProcessor";
 import { Notice } from 'obsidian';
 import { logger } from 'main';
 // When you use export default in a module, that module becomes an object and what you're exporting becomes a property of that object.
@@ -9,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { config } from "main";
 
-import * as readline from 'readline';
+
 
 export default async function obsidiosaurusProcess(basePath: string): Promise<boolean> {
 
@@ -42,6 +43,7 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
     // Collect files to delete
     targetJson = await checkFilesExistence(targetJson)
+    await fs.promises.writeFile('target.json', JSON.stringify(targetJson, null, 2));
     const filesToDelete = await getFilesToDelete(allSourceFilesInfo, targetJson);
     const deletionPromises = filesToDelete.map(fileToDelete => deleteFile(fileToDelete, targetJson, basePath));
     await Promise.all(deletionPromises);
@@ -66,17 +68,12 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     const filesToProcessIndices = filesToProcess.map(file => file.index);
 
     // Filter allSourceFilesInfo to only include files to process
-    const filesToCopy = allSourceFilesInfo.filter((_, index) => filesToProcessIndices.includes(index));
+    const filesToMarkdownProcess = allSourceFilesInfo.filter((_, index) => filesToProcessIndices.includes(index));
 
-    // Now only files to process will be copied
-    await copyFilesToTarget(filesToCopy, basePath, targetJson);
+    await copyFilesToTarget(filesToMarkdownProcess, basePath, targetJson);
 
     await fs.promises.writeFile('allFilesInfo.json', JSON.stringify(targetJson, null, 2));
 
-    //await Promise.all([
-    //fs.promises.writeFile('allFilesInfo_.json', JSON.stringify(allSourceFilesInfo, null, 2)),
-    //fs.promises.writeFile('allAssetsInfo_.json', JSON.stringify(allSourceAssetsInfo, null, 2))
-    //]);
 
     logger.info("✅ Obsidiosaurus run successfully");
     new Notice("✅ Obsidiosaurus run successfully")
@@ -306,7 +303,7 @@ interface FilesToProcess {
 /**
  * This asynchronous function compares source and target files to identify files that need to be deleted.
  *
- * @param {Partial<SourceFileInfo>[]} allSourceFilesInfo - Array of source files information. Each element is an object containing details about a file from the source.
+ * @param {Partial<SourceFileInfo>[]} allSourceFilesInfo - Array of source files information. Each object containing details about a source file
  * @param {SourceFileInfo[]} targetJson - Array of target files information. Each element is an object containing details about a file from the target.
  * @return {Promise<FilesToProcess[]>} - A promise that resolves with an array of objects containing indices of files to delete and the reasons for their deletion. Each object has two properties: 'index' and 'reason'.
  *
@@ -315,7 +312,6 @@ interface FilesToProcess {
  * This function iterates over each file in the 'targetJson' array and attempts to find a matching file in the 'allSourceFilesInfo' array based on their relative paths. If no matching source file is found, it implies that the target file should be deleted, and it is added to the 'filesToDelete' array with the reason "it does not exist in sourceJson".
  * 
  * If a matching source file is found, their modification dates are compared. If the source file has a more recent modification date than the target file, it implies that the target file should be updated. As a part of the update process, the older target file needs to be deleted first, so it is added to the 'filesToDelete' array with the reason "its last modification date is older than the date in sourceJson".
- * 
  * The function returns a promise that resolves with the 'filesToDelete' array.
  */
 async function getFilesToDelete(allSourceFilesInfo: Partial<SourceFileInfo>[], targetJson: SourceFileInfo[]): Promise<FilesToProcess[]> {
@@ -340,10 +336,11 @@ async function getFilesToDelete(allSourceFilesInfo: Partial<SourceFileInfo>[], t
             if (config.debug) {
                 logger.info('🗑️ File to delete: %s', targetFile.pathSourceRelative);
             }
-        } else if (sourceDate && sourceDate != targetDate) {
+        } else if (sourceDate && targetDate.getTime() < sourceDate.getTime()) {
             filesToDelete.push({ index: i, reason: `its last modification date ${targetDate} is older than the date in sourceJson ${sourceDate}` });
             if (config.debug) {
-                logger.info('🔄 File to update: %s', targetFile.pathSourceRelative);
+                logger.info('🔄 File to update: %s, Target: %s Source: %s', targetFile.pathSourceRelative, targetDate, sourceDate);
+                logger.info(filesToDelete);
             }
         }
     });
@@ -400,21 +397,26 @@ async function ensureDirectoryExistence(filePath: string) {
 
 async function copyFilesToTarget(files: Partial<SourceFileInfo>[], basePath: string, targetJson: Partial<SourceFileInfo>[]) {
     const promises = files.map(async (file) => {
-        const { pathTargetAbsolute, pathSourceAbsolute } = file
+        const { pathTargetAbsolute, pathSourceAbsolute, dateModified } = file
         // Ensure the directory exists
 
         if (pathTargetAbsolute && pathSourceAbsolute) {
             await ensureDirectoryExistence(pathTargetAbsolute);
 
-            // Copy the file
-            await fs.promises.copyFile(pathSourceAbsolute, pathTargetAbsolute);
+            const sourceContent = await fs.promises.readFile(pathSourceAbsolute, 'utf-8');
+            const transformedContent = await processMarkdown(sourceContent);
+            await fs.promises.writeFile(pathTargetAbsolute, String(transformedContent));
+
+            if (dateModified) {
+                const mtime = new Date(dateModified);
+                await fs.promises.utimes(pathTargetAbsolute, mtime, mtime);
+            }
 
             if (config.debug) {
                 logger.info(`📤 Copied file from ${pathSourceAbsolute} to ${pathTargetAbsolute}`);
             }
         }
         targetJson.push(file as SourceFileInfo);
-
     });
 
     // Wait for all copy operations to finish
@@ -448,6 +450,9 @@ async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<Source
     for (const fileInfo of targetJson) {
         try {
             await fs.promises.access(fileInfo.pathTargetAbsolute);
+            const stats = await fs.promises.stat(fileInfo.pathTargetAbsolute);
+            fileInfo.dateModified = stats.mtime;
+            fileInfo.size = stats.size;
             existentFiles.push(fileInfo);
         } catch (err) {
             if (err.code !== 'ENOENT') {
@@ -458,3 +463,4 @@ async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<Source
     }
     return existentFiles;
 }
+
