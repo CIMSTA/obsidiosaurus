@@ -38,8 +38,14 @@ export default class Obsidisaurus extends Plugin {
 				const basePath: string = this.app.vault.adapter.basePath;
 				await obsidiosaurusProcess(basePath)
 			} catch (error) {
-				logger.error(`❌ Obsidiosaurus crashed with error message: \n${error} `);
-				new Notice("❌ Obsidiosaurus crashed. \n Check log files for more info")
+				if (config.debug) {
+					const errorMessage = `❌ Obsidiosaurus crashed in function with the following error:\n${error.stack}`;
+					logger.error(errorMessage);
+					new Notice(`❌ Obsidiosaurus crashed. \n${errorMessage}`);
+				} else {
+					logger.error(`❌ Obsidiosaurus crashed with error message: \n${error} `);
+					new Notice("❌ Obsidiosaurus crashed. \n Check log files for more info")
+				}
 			}
 		});
 
