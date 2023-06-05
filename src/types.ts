@@ -1,7 +1,6 @@
 export interface Config {
 	obsidian_vault_directory: string,
 	docusaurus_directory: string,
-	ignored_folders: string,
 	obsidian_asset_folder_name: string,
 	docusaurus_asset_subfolder_name: string,
 	i18n_supported: boolean,
@@ -17,7 +16,26 @@ export interface Config {
 }
 
 export interface MainFolder {
-    [key: string]: { type: string };
+    name: string;
+    type: string;
+    files: string[];
   }
 
-export interface 
+
+export interface SourceFileInfo {
+fileName: string;
+fileNameClean: string;
+fileExtension: string;
+mainFolder: string;
+parentFolder: string;
+type: string;
+pathSourceAbsolute: string;
+pathSourceRelative: string;  
+pathSourceRelativeSplit: string[];
+pathTargetAbsolute: string;
+pathTargetRelative: string;  
+dateModified: Date;
+size: number;
+language: string;
+}
+
