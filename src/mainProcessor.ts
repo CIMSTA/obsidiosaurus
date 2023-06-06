@@ -1,4 +1,4 @@
-import { MainFolder, SourceFileInfo } from "./types";
+import { MainFolder, SourceFileInfo, FilesToProcess, AssetFileInfo } from "./types";
 import processMarkdown from "./markdownProcessor";
 import { Notice } from 'obsidian';
 import { logger } from 'main';
@@ -13,10 +13,6 @@ import { config } from "main";
 
 
 export default async function obsidiosaurusProcess(basePath: string): Promise<boolean> {
-
-    // Get main folders and files
-
-
 
     const mainFolders = getMainfolders(basePath);
     mainFolders.forEach(folder => processSingleFolder(folder, basePath));
@@ -69,8 +65,8 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
     // Filter allSourceFilesInfo to only include files to process
     const filesToMarkdownProcess = allSourceFilesInfo.filter((_, index) => filesToProcessIndices.includes(index));
-
-    await copyFilesToTarget(filesToMarkdownProcess, basePath, targetJson);
+    let assetJson = JSON.parse(await fs.promises.readFile('assetInfo.json', 'utf-8'));
+    await copyMarkdownFilesToTarget(filesToMarkdownProcess, basePath, targetJson, assetJson);
 
     await fs.promises.writeFile('allFilesInfo.json', JSON.stringify(targetJson, null, 2));
 
@@ -158,6 +154,54 @@ function processSingleFolder(folder: MainFolder, basePath: string): void {
     if (config.debug) {
         logger.info('📄 Vault Files for %s: %s', folder.name, JSON.stringify(files));
     }
+}
+
+async function deleteParentDirectories(filepath: string) {
+    let dirPath = path.dirname(filepath);
+    while (dirPath !== path.dirname(dirPath)) { // while dirPath has a parent directory
+        try {
+            await fs.promises.rmdir(dirPath);
+            logger.info(`🧨 Successfully deleted directory ${dirPath}`);
+        } catch (error) {
+            // Ignore the error if the directory is not empty
+            if (error.code !== 'ENOTEMPTY' && error.code !== 'EEXIST' && error.code !== 'EPERM') {
+                logger.info(`❌ Failed to delete directory ${dirPath}: ${error}`);
+            }
+            return;
+        }
+        dirPath = path.dirname(dirPath);
+    }
+}
+
+async function ensureDirectoryExistence(filePath: string) {
+    const dir = path.dirname(filePath);
+
+    if (fs.existsSync(dir)) {
+        return true;
+    }
+
+    await fs.promises.mkdir(dir, { recursive: true });
+}
+
+async function compareSource(sourceJson: Partial<SourceFileInfo>[], targetJson: Partial<SourceFileInfo>[]): Promise<FilesToProcess[]> {
+    const filesToProcess: FilesToProcess[] = [];
+
+    // Iterate over sourceJson files
+    sourceJson.forEach((sourceFile, i) => {
+        // Find a matching file in targetJson
+        const matchingTargetFile = targetJson.find(file => file.pathSourceRelative === sourceFile.pathSourceRelative);
+
+        // Add to the filesToProcess array if no matching file is found
+        if (!matchingTargetFile) {
+            filesToProcess.push({ index: i, reason: "Does not exist in targetJson" });
+            if (config.debug) {
+                logger.info('📝 File to process: %s', sourceFile.pathSourceRelative);
+            }
+
+        }
+    });
+
+    return filesToProcess;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -295,11 +339,6 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
     return sourceFileInfo;
 }
 
-interface FilesToProcess {
-    index: number;
-    reason: string;
-}
-
 /**
  * This asynchronous function compares source and target files to identify files that need to be deleted.
  *
@@ -368,83 +407,6 @@ async function deleteFile(fileToDelete: FilesToProcess, targetJson: SourceFileIn
     targetJson.splice(fileToDelete.index, 1);
 }
 
-async function deleteParentDirectories(filepath: string) {
-    let dirPath = path.dirname(filepath);
-    while (dirPath !== path.dirname(dirPath)) { // while dirPath has a parent directory
-        try {
-            await fs.promises.rmdir(dirPath);
-            logger.info(`🧨 Successfully deleted directory ${dirPath}`);
-        } catch (error) {
-            // Ignore the error if the directory is not empty
-            if (error.code !== 'ENOTEMPTY' && error.code !== 'EEXIST' && error.code !== 'EPERM') {
-                logger.info(`❌ Failed to delete directory ${dirPath}: ${error}`);
-            }
-            return;
-        }
-        dirPath = path.dirname(dirPath);
-    }
-}
-
-async function ensureDirectoryExistence(filePath: string) {
-    const dir = path.dirname(filePath);
-
-    if (fs.existsSync(dir)) {
-        return true;
-    }
-
-    await fs.promises.mkdir(dir, { recursive: true });
-}
-
-async function copyFilesToTarget(files: Partial<SourceFileInfo>[], basePath: string, targetJson: Partial<SourceFileInfo>[]) {
-    const promises = files.map(async (file) => {
-        const { pathTargetAbsolute, pathSourceAbsolute, dateModified } = file
-        // Ensure the directory exists
-
-        if (pathTargetAbsolute && pathSourceAbsolute) {
-            await ensureDirectoryExistence(pathTargetAbsolute);
-
-            const sourceContent = await fs.promises.readFile(pathSourceAbsolute, 'utf-8');
-            const transformedContent = await processMarkdown(sourceContent);
-            await fs.promises.writeFile(pathTargetAbsolute, String(transformedContent));
-
-            if (dateModified) {
-                const mtime = new Date(dateModified);
-                await fs.promises.utimes(pathTargetAbsolute, mtime, mtime);
-            }
-
-            if (config.debug) {
-                logger.info(`📤 Copied file from ${pathSourceAbsolute} to ${pathTargetAbsolute}`);
-            }
-        }
-        targetJson.push(file as SourceFileInfo);
-    });
-
-    // Wait for all copy operations to finish
-    await Promise.all(promises);
-}
-
-async function compareSource(sourceJson: Partial<SourceFileInfo>[], targetJson: Partial<SourceFileInfo>[]): Promise<FilesToProcess[]> {
-    const filesToProcess: FilesToProcess[] = [];
-
-    // Iterate over sourceJson files
-    sourceJson.forEach((sourceFile, i) => {
-        // Find a matching file in targetJson
-        const matchingTargetFile = targetJson.find(file => file.pathSourceRelative === sourceFile.pathSourceRelative);
-
-        // Add to the filesToProcess array if no matching file is found
-        if (!matchingTargetFile) {
-            filesToProcess.push({ index: i, reason: "Does not exist in targetJson" });
-            if (config.debug) {
-                logger.info('📝 File to process: %s', sourceFile.pathSourceRelative);
-            }
-
-        }
-    });
-
-    return filesToProcess;
-}
-
-
 async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<SourceFileInfo[]> {
     const existentFiles = [];
     for (const fileInfo of targetJson) {
@@ -464,3 +426,38 @@ async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<Source
     return existentFiles;
 }
 
+/// Start Coversion Process
+
+async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], basePath: string, targetJson: Partial<SourceFileInfo>[], assetJson: AssetFileInfo[]) {
+    
+    
+    const promises = files.map(async (file) => {
+        const { pathTargetAbsolute, pathSourceAbsolute, dateModified } = file
+        // Ensure the directory exists
+
+        if (pathTargetAbsolute && pathSourceAbsolute) {
+            await ensureDirectoryExistence(pathTargetAbsolute);
+
+            const sourceContent = await fs.promises.readFile(pathSourceAbsolute, 'utf-8');
+            // Actual conversion
+            const { pathSourceRelative } = file
+            const transformedContent = await processMarkdown(pathSourceRelative, sourceContent, assetJson);
+            await fs.promises.writeFile(pathTargetAbsolute, String(transformedContent));
+
+            if (dateModified) {
+                const mtime = new Date(dateModified);
+                await fs.promises.utimes(pathTargetAbsolute, mtime, mtime);
+            }
+
+            if (config.debug) {
+                logger.info(`📤 Copied file from ${pathSourceAbsolute} to ${pathTargetAbsolute}`);
+            }
+        }
+        targetJson.push(file as SourceFileInfo);
+        
+    });
+
+    // Wait for all copy operations to finish
+    await Promise.all(promises);
+    await fs.promises.writeFile('assetInfo.json', JSON.stringify(assetJson, null, 2))
+}
