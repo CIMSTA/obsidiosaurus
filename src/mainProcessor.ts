@@ -11,9 +11,9 @@ import * as path from 'path';
 import { config } from "main";
 
 
-
 export default async function obsidiosaurusProcess(basePath: string): Promise<boolean> {
 
+    // Get the main folders of the vault e.g. docs, assets, ..
     const mainFolders = getMainfolders(basePath);
     mainFolders.forEach(folder => processSingleFolder(folder, basePath));
 
@@ -21,13 +21,15 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
         logger.info('📁 Folder structure with Files: %s', JSON.stringify(mainFolders));
     }
 
-    // Extract file info
+    // Get all the file including the necessary infos from the mainfolders
     const allInfo = mainFolders.flatMap(folder => folder.files.map(file => getSourceFileInfo(basePath, folder, file)));
 
-    // Separate assets from other files
+    // Separate assets from the other files
     const allSourceFilesInfo = allInfo.filter(info => info.type !== 'assets');
     const allSourceAssetsInfo = allInfo.filter(info => info.type === 'assets');
 
+    // Try to read in the targetJson, this should represent the current status of the files in Docusaurus
+    // when there is no file initialize an empty array
     let targetJson: SourceFileInfo[];
     try {
         const jsonData = await fs.promises.readFile('allFilesInfo.json', 'utf-8');
@@ -37,29 +39,36 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
         targetJson = []; // Provide an empty JSON array as the default value
     }
 
-    // Collect files to delete
+    // Verify if every file exists from target.json
+    // When not remove it from targetJson
     targetJson = await checkFilesExistence(targetJson)
 
+    // Check if dateModified of Source is newer or the file doesnt exist anymore in Vault
+    // Get an array with indexes to delete from back
     const filesToDelete = await getFilesToDelete(allSourceFilesInfo, targetJson);
+
+    // Delete the files with the index array from Docusaurus
+    // 
     await deleteFiles(filesToDelete, targetJson, basePath);
+    console.log("❤")
 
-    // Copy files to target
-    //await copyFilesToTarget(allSourceFilesInfo, basePath);
-
+  
     // Write files
 
     await fs.promises.writeFile('allFilesInfo.json', JSON.stringify(targetJson, null, 2));
+    await fs.promises.writeFile('allFilesInfo_Test.json', JSON.stringify(targetJson, null, 2));
     targetJson = JSON.parse(await fs.promises.readFile('allFilesInfo.json', 'utf-8'));
 
 
     const filesToProcess = await compareSource(allSourceFilesInfo, targetJson);
-
+    console.log("❤❤")
     if (filesToProcess.length == 0) {
         new Notice(`💤 Nothing to process`)
         return true;
     }
+    console.log("❤❤❤")
     new Notice(`⚙ Processing ${filesToProcess.length} Files`)
-
+    console.log("❤❤❤❤")
     // Get the indices of files to process
     const filesToProcessIndices = filesToProcess.map(file => file.index);
 
@@ -185,6 +194,9 @@ async function ensureDirectoryExistence(filePath: string) {
 
 async function compareSource(sourceJson: Partial<SourceFileInfo>[], targetJson: Partial<SourceFileInfo>[]): Promise<FilesToProcess[]> {
     const filesToProcess: FilesToProcess[] = [];
+
+    await fs.promises.writeFile('source.json', JSON.stringify(sourceJson, null, 2));
+    await fs.promises.writeFile('target.json', JSON.stringify(targetJson, null, 2));
 
     // Iterate over sourceJson files
     sourceJson.forEach((sourceFile, i) => {
@@ -379,7 +391,6 @@ async function getFilesToDelete(allSourceFilesInfo: Partial<SourceFileInfo>[], t
             filesToDelete.push({ index: i, reason: `its last modification date ${targetDate} is older than the date in sourceJson ${sourceDate}` });
             if (config.debug) {
                 logger.info('🔄 File to update: %s, Target: %s Source: %s', targetFile.pathSourceRelative, targetDate, sourceDate);
-                logger.info(filesToDelete);
             }
         }
     });
@@ -390,6 +401,9 @@ async function getFilesToDelete(allSourceFilesInfo: Partial<SourceFileInfo>[], t
 async function deleteFiles(filesToDelete: FilesToProcess[], targetJson: SourceFileInfo[], basePath: string) {
     const errors: Error[] = [];
 
+    // Sort filesToDelete in descending order based on index
+    filesToDelete.sort((a, b) => b.index - a.index);
+
     // Delete files
     for (const fileToDelete of filesToDelete) {
         const targetFile = targetJson[fileToDelete.index];
@@ -398,6 +412,9 @@ async function deleteFiles(filesToDelete: FilesToProcess[], targetJson: SourceFi
             await fs.promises.unlink(path.join(basePath, targetFile.pathTargetRelative));
             logger.info(`✅ Successfully deleted file %s`, targetFile.pathTargetRelative);
             await deleteParentDirectories(path.join(basePath, targetFile.pathTargetRelative));
+
+            // Remove the deleted file from targetJson immediately after successful deletion
+            targetJson.splice(fileToDelete.index, 1);
         } catch (error) {
             // If error code is ENOENT, the file was not found, which we consider as a successful deletion.
             if (error.code !== "ENOENT") {
@@ -406,17 +423,7 @@ async function deleteFiles(filesToDelete: FilesToProcess[], targetJson: SourceFi
                 continue; // If deletion failed for other reasons, we keep the file in targetJson.
             }
             logger.info(`🗑️ File %s was not found, considered as deleted`, targetFile.pathTargetRelative);
-        }
-    }
-
-    // Remove the files from targetJson
-    for (const fileToDelete of filesToDelete) {
-        // If there was no error deleting the file, remove it from the targetJson
-        if (!errors.find(error => error.message.includes(fileToDelete.path))) {
-            const index = targetJson.findIndex(file => file.path === fileToDelete.path);
-            if (index > -1) {
-                targetJson.splice(index, 1);
-            }
+            targetJson.splice(fileToDelete.index, 1);
         }
     }
 }
@@ -440,8 +447,14 @@ async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<Source
             }
         })
     );
+    const len = existentFiles.length
     // Filter out null entries (i.e., non-existent files)
     const files = existentFiles.filter(fileInfo => fileInfo !== null)
+
+    if (config.debug) {
+        logger.info("Removed %i Files", len - files.length);
+    }
+        
     return files as SourceFileInfo[];
 }
 
