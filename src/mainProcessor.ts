@@ -39,15 +39,15 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
     // Collect files to delete
     targetJson = await checkFilesExistence(targetJson)
-    await fs.promises.writeFile('target.json', JSON.stringify(targetJson, null, 2));
+
     const filesToDelete = await getFilesToDelete(allSourceFilesInfo, targetJson);
-    const deletionPromises = filesToDelete.map(fileToDelete => deleteFile(fileToDelete, targetJson, basePath));
-    await Promise.all(deletionPromises);
+    await deleteFiles(filesToDelete, targetJson, basePath);
 
     // Copy files to target
     //await copyFilesToTarget(allSourceFilesInfo, basePath);
 
     // Write files
+
     await fs.promises.writeFile('allFilesInfo.json', JSON.stringify(targetJson, null, 2));
     targetJson = JSON.parse(await fs.promises.readFile('allFilesInfo.json', 'utf-8'));
 
@@ -387,52 +387,72 @@ async function getFilesToDelete(allSourceFilesInfo: Partial<SourceFileInfo>[], t
     return filesToDelete;
 }
 
-async function deleteFile(fileToDelete: FilesToProcess, targetJson: SourceFileInfo[], basePath: string) {
-    const targetFile = targetJson[fileToDelete.index];
+async function deleteFiles(filesToDelete: FilesToProcess[], targetJson: SourceFileInfo[], basePath: string) {
+    const errors: Error[] = [];
 
-    try {
-        await fs.promises.unlink(path.join(basePath, targetFile.pathTargetRelative));
-        logger.info(`✅ Successfully deleted file %s`, targetFile.pathTargetRelative);
-        await deleteParentDirectories(path.join(basePath, targetFile.pathTargetRelative));
-    } catch (error) {
-        // If error code is ENOENT, the file was not found, which we consider as a successful deletion.
-        if (error.code !== "ENOENT") {
-            logger.error(`❌ Failed to delete file %s: %s`, targetFile.pathTargetRelative, error);
-            return; // If deletion failed for other reasons, we keep the file in targetJson.
+    // Delete files
+    for (const fileToDelete of filesToDelete) {
+        const targetFile = targetJson[fileToDelete.index];
+
+        try {
+            await fs.promises.unlink(path.join(basePath, targetFile.pathTargetRelative));
+            logger.info(`✅ Successfully deleted file %s`, targetFile.pathTargetRelative);
+            await deleteParentDirectories(path.join(basePath, targetFile.pathTargetRelative));
+        } catch (error) {
+            // If error code is ENOENT, the file was not found, which we consider as a successful deletion.
+            if (error.code !== "ENOENT") {
+                logger.error(`❌ Failed to delete file %s: %s`, targetFile.pathTargetRelative, error);
+                errors.push(error);
+                continue; // If deletion failed for other reasons, we keep the file in targetJson.
+            }
+            logger.info(`🗑️ File %s was not found, considered as deleted`, targetFile.pathTargetRelative);
         }
-        logger.info(`🗑️ File %s was not found, considered as deleted`, targetFile.pathTargetRelative);
     }
 
-    // Remove the file from targetJson whether deletion was successful or the file was not found.
-    targetJson.splice(fileToDelete.index, 1);
+    // Remove the files from targetJson
+    for (const fileToDelete of filesToDelete) {
+        // If there was no error deleting the file, remove it from the targetJson
+        if (!errors.find(error => error.message.includes(fileToDelete.path))) {
+            const index = targetJson.findIndex(file => file.path === fileToDelete.path);
+            if (index > -1) {
+                targetJson.splice(index, 1);
+            }
+        }
+    }
 }
 
 async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<SourceFileInfo[]> {
-    const existentFiles = [];
-    for (const fileInfo of targetJson) {
-        try {
-            await fs.promises.access(fileInfo.pathTargetAbsolute);
-            const stats = await fs.promises.stat(fileInfo.pathTargetAbsolute);
-            fileInfo.dateModified = stats.mtime;
-            fileInfo.size = stats.size;
-            existentFiles.push(fileInfo);
-        } catch (err) {
-            if (err.code !== 'ENOENT') {
-                throw err; // re-throw unexpected errors
+    const existentFiles = await Promise.all(
+        targetJson.map(async fileInfo => {
+            try {
+                await fs.promises.access(fileInfo.pathTargetAbsolute);
+                const stats = await fs.promises.stat(fileInfo.pathTargetAbsolute);
+                fileInfo.dateModifiedTarget = stats.mtime;
+                fileInfo.sizeTarget = stats.size;
+                return fileInfo;
+            } catch (err) {
+                if (err.code !== 'ENOENT') {
+                    throw err; // re-throw unexpected errors
+                }
+                // File doesn't exist, return null
+                console.log(`File not fond: ${fileInfo.pathSourceRelative}`)
+                return null;
             }
-            // File doesn't exist, do nothing and continue to the next file
-        }
-    }
-    return existentFiles;
+        })
+    );
+    // Filter out null entries (i.e., non-existent files)
+    const files = existentFiles.filter(fileInfo => fileInfo !== null)
+    return files as SourceFileInfo[];
 }
 
 /// Start Coversion Process
 
 async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], basePath: string, targetJson: Partial<SourceFileInfo>[], assetJson: AssetFileInfo[]) {
     
-    
+    const results: SourceFileInfo[] = [];
+
     const promises = files.map(async (file) => {
-        const { pathTargetAbsolute, pathSourceAbsolute, dateModified } = file
+        const { pathTargetAbsolute, pathSourceAbsolute } = file
         // Ensure the directory exists
 
         if (pathTargetAbsolute && pathSourceAbsolute) {
@@ -444,20 +464,21 @@ async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], baseP
             const transformedContent = await processMarkdown(pathSourceRelative, sourceContent, assetJson);
             await fs.promises.writeFile(pathTargetAbsolute, String(transformedContent));
 
-            if (dateModified) {
-                const mtime = new Date(dateModified);
-                await fs.promises.utimes(pathTargetAbsolute, mtime, mtime);
-            }
 
             if (config.debug) {
-                logger.info(`📤 Copied file from ${pathSourceAbsolute} to ${pathTargetAbsolute}`);
+                logger.info(`📤 Converted file from ${pathSourceAbsolute} to ${pathTargetAbsolute}`);
             }
         }
-        targetJson.push(file as SourceFileInfo);
+
+        results.push(file as SourceFileInfo);
         
     });
 
-    // Wait for all copy operations to finish
-    await Promise.all(promises);
-    await fs.promises.writeFile('assetInfo.json', JSON.stringify(assetJson, null, 2))
+   // Wait for all copy operations to finish
+   await Promise.all(promises);
+    
+   // Add results to targetJson
+   targetJson.push(...results);
+
+   await fs.promises.writeFile('assetInfo.json', JSON.stringify(assetJson, null, 2));
 }
