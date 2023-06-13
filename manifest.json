@@ -1,9 +1,9 @@
 {
     "id": "obsidiosaurus",
     "name": "Obsidiosaurus",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "description": "Connect your vault to Docusaurus",
-    "author": "Mat4m0",
+    "author": "CIMSTA",
     "authorUrl": "https://cimsta.com",
     "js": "main.js",
     "isDesktopOnly": true
