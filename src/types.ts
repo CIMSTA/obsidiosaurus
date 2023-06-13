@@ -1,41 +1,59 @@
 export interface Config {
-	obsidian_vault_directory: string,
-	docusaurus_directory: string,
-	obsidian_asset_folder_name: string,
-	docusaurus_asset_subfolder_name: string,
-	i18n_supported: boolean,
-	language_separator: string,
-	main_language: string,
-	secondary_languages: string,
-	convert_images: boolean,
-	converted_image_type: string,
-	converted_image_max_width: string,
-	excalidraw: boolean,
-	diagram: boolean,
-    debug: true,
+	obsidianVaultDirectory: string,
+	docusaurusWebsiteDirectory: string,
+	obsidianAssetSubfolderName: string,
+	docusaurusAssetSubfolderName: string,
+	mainLanguage: string,
+	secondaryLanguages: string,
+	convertedImageType: string,
+	convertedImageMaxWidth: string,
+	excalidrawSupport: boolean,
+	diagramSupport: boolean,
+	debug: true,
 }
 
 export interface MainFolder {
-    name: string;
-    type: string;
-    files: string[];
-  }
-
+	name: string;
+	type: string;
+	files: string[];
+}
 
 export interface SourceFileInfo {
-fileName: string;
-fileNameClean: string;
-fileExtension: string;
-mainFolder: string;
-parentFolder: string;
-type: string;
-pathSourceAbsolute: string;
-pathSourceRelative: string;  
-pathSourceRelativeSplit: string[];
-pathTargetAbsolute: string;
-pathTargetRelative: string;  
-dateModified: Date;
-size: number;
-language: string;
+	fileName: string;
+	fileNameClean: string;
+	fileExtension: string;
+	mainFolder: string;
+	parentFolder: string;
+	type: string;
+	pathSourceAbsolute: string;
+	pathSourceRelative: string;
+	pathSourceRelativeSplit: string[];
+	pathTargetAbsolute: string;
+	pathTargetRelative: string;
+	dateModified: Date;
+	dateModifiedTarget: Date;
+	size: number;
+	sizeTarget: number;
+	language: string;
 }
+
+export interface AssetFileInfo {
+	fileName: string;
+	fileNameClean: string;
+	fileExtension: string;
+    AssetTypeInDocument: AssetType[];
+}
+
+export interface AssetType {
+	type: string;
+	files: string[];
+  }
+  
+
+export interface FilesToProcess {
+	index: number;
+	reason: string;
+	pathKey?: string;
+}
+
 

@@ -25,8 +25,8 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     const allInfo = mainFolders.flatMap(folder => folder.files.map(file => getSourceFileInfo(basePath, folder, file)));
 
     // Separate assets from the other files
-    const allSourceFilesInfo = allInfo.filter(info => info.type !== 'assets');
-    const allSourceAssetsInfo = allInfo.filter(info => info.type === 'assets');
+    const allSourceFilesInfo: Partial<SourceFileInfo>[] = allInfo.filter(info => info.type !== 'assets');
+    const allSourceAssetsInfo: Partial<SourceFileInfo>[]  = allInfo.filter(info => info.type === 'assets');
 
     // Try to read in the targetJson, this should represent the current status of the files in Docusaurus
     // when there is no file initialize an empty array
@@ -48,11 +48,27 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     const filesToDelete = await getFilesToDelete(allSourceFilesInfo, targetJson);
 
     // Delete the files with the index array from Docusaurus
-    // 
     await deleteFiles(filesToDelete, targetJson, basePath);
-    console.log("❤")
+    let assetJson = [];
 
-  
+    // Read in the assetInfo Json File, this contains all infos about processed images, pdfs,..
+    try {
+        assetJson = JSON.parse(await fs.promises.readFile('assetInfo.json', 'utf-8'));
+      } catch (error) {
+        if (error.code === 'ENOENT') {
+          // File doesn't exist, create it with an empty JSON array
+          await fs.promises.writeFile('assetInfo.json', '[]');
+          console.log('Created assetInfo.json');
+        } else {
+          console.error('Error reading file:', error);
+        }
+      }
+      
+
+
+    await processAssetDeletion(filesToDelete, assetJson, allSourceAssetsInfo)
+
+
     // Write files
 
     await fs.promises.writeFile('allFilesInfo.json', JSON.stringify(targetJson, null, 2));
@@ -61,20 +77,20 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
 
     const filesToProcess = await compareSource(allSourceFilesInfo, targetJson);
-    console.log("❤❤")
+
     if (filesToProcess.length == 0) {
         new Notice(`💤 Nothing to process`)
         return true;
     }
-    console.log("❤❤❤")
+
     new Notice(`⚙ Processing ${filesToProcess.length} Files`)
-    console.log("❤❤❤❤")
+
     // Get the indices of files to process
     const filesToProcessIndices = filesToProcess.map(file => file.index);
 
     // Filter allSourceFilesInfo to only include files to process
     const filesToMarkdownProcess = allSourceFilesInfo.filter((_, index) => filesToProcessIndices.includes(index));
-    let assetJson = JSON.parse(await fs.promises.readFile('assetInfo.json', 'utf-8'));
+
     await copyMarkdownFilesToTarget(filesToMarkdownProcess, basePath, targetJson, assetJson);
 
     await fs.promises.writeFile('allFilesInfo.json', JSON.stringify(targetJson, null, 2));
@@ -266,8 +282,8 @@ function sanitizeFileName(fileName: string): { fileNameClean: string, fileExtens
     }
 
     if (language === null) {
-        if (config && config.main_language) {
-            language = config.main_language;
+        if (config && config.mainLanguage) {
+            language = config.mainLanguage;
         } else {
             const errorMessage = '❌ Main language not defined in the configuration';
             logger.error(errorMessage);
@@ -280,7 +296,7 @@ function sanitizeFileName(fileName: string): { fileNameClean: string, fileExtens
 
 function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string): Partial<SourceFileInfo> {
     const { type, language, pathSourceRelative, mainFolder, parentFolder, fileExtension } = sourceFileInfo;
-    const docusaurusRelativePathToVault = `..\\${config.docusaurus_directory}\\`;
+    const docusaurusRelativePathToVault = `..\\${config.docusaurusWebsiteDirectory}\\`;
 
     if (!type || !language || !pathSourceRelative || !parentFolder || !fileExtension || !mainFolder) {
         logger.error('🚨 Required properties missing on sourceFileInfo');
@@ -288,14 +304,14 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
     }
 
     // Check if main language is used
-    const isMainLanguage = language === config.main_language;
+    const isMainLanguage = language === config.mainLanguage;
 
     // Construct main path depending on the file type
     const mainPathDict = {
         'docs': isMainLanguage ? "" : `i18n\\${language}\\docusaurus-plugin-content-docs\\current`,
         'blog': isMainLanguage ? "" : `i18n\\${language}\\docusaurus-plugin-content-blog\\current`,
         'blogMulti': isMainLanguage || !mainFolder ? "" : `i18n\\${language}\\docusaurus-plugin-content-blog-${mainFolder}`,
-        'assets': `static\\${config.docusaurus_asset_subfolder_name}`,
+        'assets': `static\\${config.docusaurusAssetSubfolderName}`,
     };
 
     //@ts-ignore
@@ -383,12 +399,12 @@ async function getFilesToDelete(allSourceFilesInfo: Partial<SourceFileInfo>[], t
 
         // Add to the filesToDelete array based on certain conditions
         if (!matchingSourceFile) {
-            filesToDelete.push({ index: i, reason: "it does not exist in sourceJson" });
+            filesToDelete.push({ index: i, reason: "it does not exist in sourceJson", pathKey: targetFile.pathSourceRelative });
             if (config.debug) {
                 logger.info('🗑️ File to delete: %s', targetFile.pathSourceRelative);
             }
         } else if (sourceDate && targetDate.getTime() < sourceDate.getTime()) {
-            filesToDelete.push({ index: i, reason: `its last modification date ${targetDate} is older than the date in sourceJson ${sourceDate}` });
+            filesToDelete.push({ index: i, reason: `its last modification date ${targetDate} is older than the date in sourceJson ${sourceDate}`, pathKey: targetFile.pathSourceRelative });
             if (config.debug) {
                 logger.info('🔄 File to update: %s, Target: %s Source: %s', targetFile.pathSourceRelative, targetDate, sourceDate);
             }
@@ -454,14 +470,14 @@ async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<Source
     if (config.debug) {
         logger.info("Removed %i Files", len - files.length);
     }
-        
+
     return files as SourceFileInfo[];
 }
 
 /// Start Coversion Process
 
 async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], basePath: string, targetJson: Partial<SourceFileInfo>[], assetJson: AssetFileInfo[]) {
-    
+
     const results: SourceFileInfo[] = [];
 
     const promises = files.map(async (file) => {
@@ -484,14 +500,85 @@ async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], baseP
         }
 
         results.push(file as SourceFileInfo);
-        
+
     });
 
-   // Wait for all copy operations to finish
-   await Promise.all(promises);
-    
-   // Add results to targetJson
-   targetJson.push(...results);
+    // Wait for all copy operations to finish
+    await Promise.all(promises);
 
-   await fs.promises.writeFile('assetInfo.json', JSON.stringify(assetJson, null, 2));
+    // Add results to targetJson
+    targetJson.push(...results);
+
+    await fs.promises.writeFile('assetInfo.json', JSON.stringify(assetJson, null, 2));
+}
+
+async function processAssetDeletion(filesToDelete: FilesToProcess[], assetJson: AssetFileInfo[], allSourceAssetsInfo:  Partial<SourceFileInfo>[]) {
+    console.log(filesToDelete)
+    // Iterate over files to delete
+    for (const fileToDelete of filesToDelete) {
+        if (!fileToDelete.pathKey) {
+            continue;
+        }
+        
+        // Iterate over assets
+        for (let i = assetJson.length - 1; i >= 0; i--) {
+            const asset = assetJson[i];
+
+            // Iterate over asset's type inclusions
+            for (let j = asset.AssetTypeInDocument.length - 1; j >= 0; j--) {
+                const inclusion = asset.AssetTypeInDocument[j];
+                
+                // Iterate over all files in the asset type
+                for (let k = inclusion.files.length - 1; k >= 0; k--) {
+                    if (inclusion.files[k] === fileToDelete.pathKey) {
+                        // Delete the file from the files array
+                        inclusion.files.splice(k, 1);
+
+                        // If there are no more files, delete the asset type
+                        if (inclusion.files.length === 0) {
+                            asset.AssetTypeInDocument.splice(j, 1);
+                            // TODO Delete the asset e.g. image1_w100.webp
+                            await deleteAssetfromTarget()
+                        }
+
+                        
+                        
+                        // If there are no more asset types, delete the asset
+                        if (asset.AssetTypeInDocument.length === 0) {
+                            
+                            await moveAssetfromSource(asset, allSourceAssetsInfo); // TODO: implement deleteAsset()
+                            assetJson.splice(i, 1);
+                        }
+
+                        // Since we deleted the file, we don't need to keep looking for it
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+async function deleteAssetfromTarget() {
+
+}
+
+
+async function moveAssetfromSource(assetToDelete: AssetFileInfo, allSourceAssetsInfo: Partial<SourceFileInfo>[]) {
+
+    // TODO move to nonUsedAssets
+/*     try {
+        await fs.promises.unlink(path.join(basePath, targetFile.pathTargetRelative));
+        logger.info(`✅ Successfully deleted file %s`, targetFile.pathTargetRelative);
+
+
+    } catch (error) {
+        // If error code is ENOENT, the file was not found, which we consider as a successful deletion.
+        if (error) {
+            logger.error(`❌ Failed to delete file %s: %s`, targetFile.pathTargetRelative, error);
+        
+        }
+    } */
+    console.log("💥💢💌💌💟💟💢💌💢💢💢💢💥💥💢💢")
+    console.log(assetToDelete)
+    return
 }
