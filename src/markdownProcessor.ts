@@ -91,69 +91,6 @@ const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boo
     return [line, isInAdmonition, isInQuote, admonition];
 };
 
-
-
-
-
-
-
-/* const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boolean): [string, boolean, boolean] => {
-    // Extract the admonition type and block title from the line
-    const admonitionMatch = line.match(/^>\s*\[!(?<type>.*)](?<title>.*)?/);
-    if (admonitionMatch) {
-        const admonitionType = admonitionMatch?.groups?.type || '';
-        const blockTitle = admonitionMatch?.groups?.title || '';
-        const admonitionWhitespaces = line.indexOf("[") - line.indexOf(">");
-    }
-    
-    if (isInAdmonition && line.trim() === '') {
-        // End of admonition block
-        isInAdmonition = false;
-        return [":::\n\n", isInAdmonition, isInQuote];
-    } 
-
-    if (isInQuote && line.trim() === '') {
-        // End of quote block
-        isInQuote = false;
-        return ["> — " + blockTitle, isInAdmonition, isInQuote];
-    }
-
-    if (isInQuote) {
-        // If we're inside a quote, prefix the line with '>'
-        isInQuote = false;
-        return ["> " + line, isInAdmonition, isInQuote];
-    }
-    
-    if (isInAdmonition) {
-        
-        console.log(admonitionWhitespaces)
-        // If we're inside an admonition, remove the leading '> ' along with 'admonitionWhitespaces' number of whitespaces
-        return [line.slice(admonitionWhitespaces + 1), isInAdmonition, isInQuote];
-    }
-
-    if (!isInAdmonition && admonitionType) {
-        // Beginning of a new admonition block
-        isInAdmonition = true;
-        line = ":::" + admonitionType;
-        if (blockTitle) {
-            line += " " + blockTitle;
-        }
-        line += "\n";
-    }
-
-   
-    if (admonitionType === "quote") {
-        // Beginning of a new quote block
-        line = "";
-        isInQuote = true;
-    }
-
-    return [line, isInAdmonition, isInQuote];
-}; */
-
-
-
-
 function checkForLinks(line: string): string {
     const pattern = /\[([^\]]+)\]\(([^)]+)\)/;
     const match = line.match(pattern);
@@ -228,7 +165,6 @@ function removeNumberPrefix(str: string): string {
 
 function checkForAssets(line: string, processedFileName: string, assetJson: AssetFileInfo[]): string {
     const match = line.match(/!\[(?:\|(\d+)(?:x(\d+))?)?\]\((.*?)\)/);
-    logger.info(`😯 ${line}`);
     if (match) {
         //console.log(match)
         const pathAssetRelativeParts = match[3].split('/');
