@@ -1,7 +1,7 @@
 import * as readline from 'readline';
 import * as stream from 'stream'
 import { logger } from 'main';
-import { AssetFileInfo, AssetType } from "./types";
+import { AssetFileInfo, AssetType, Admonition } from "./types";
 
 export default async function processMarkdown(processedFileName: string, sourceContent: string, assetJson: AssetFileInfo[]): Promise<string> {
     // Create a stream from the source content
@@ -20,13 +20,13 @@ export default async function processMarkdown(processedFileName: string, sourceC
     // Initialize the transformed content as an empty string
     let transformedContent = '';
     let inAdmonition = false, inQuote = false;
-
+    let admonition = { type: '', title: '', whitespaces: 0 };
     // Iterate over the lines
     for await (const line of rl) {
         // Call your processing functions here
         let processedLine = checkForAssets(line, processedFileName, assetJson);
         processedLine = checkForLinks(line);
-        [processedLine, inAdmonition, inQuote] = convertAdmonition(processedLine, inAdmonition, inQuote);
+        [processedLine, inAdmonition, inQuote, admonition] = convertAdmonition(processedLine, inAdmonition, inQuote, admonition);
 
         // Append the processed line to the transformed content
         transformedContent += processedLine + '\n';
@@ -36,20 +36,83 @@ export default async function processMarkdown(processedFileName: string, sourceC
     return transformedContent;
 }
 
-const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boolean): [string, boolean, boolean] => {
+
+const parseAdmonitionData = (line: string): Admonition => {
+    const match = line.match(/^>\s*\[!(?<type>.*)](?<title>.*)?/);
+    if (!match) return { type: '', title: '', whitespaces: 0 };
+
+    return {
+        type: match.groups?.type || '',
+        title: match.groups?.title?.trim() || '',
+        whitespaces: line.indexOf("[") - line.indexOf(">"),
+    };
+};
+
+
+// Function to convert Admonition and quote blocks
+const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boolean, admonition: Admonition): [string, boolean, boolean, Admonition] => {
+    // Parse data if the line is the start of a new Admonition or quote
+    if (!isInAdmonition && !isInQuote) {
+        admonition = parseAdmonitionData(line);
+    }
+
+    // Process the line based on whether it's part of an Admonition, a quote, or a normal line
+    if (isInAdmonition) {
+        if (line.trim() === '') {
+            // If the line is empty, it's the end of the Admonition
+            line = ":::\n"
+            isInAdmonition = false
+        } else {
+            // If the line is not empty, it's part of the Admonition
+            line = line.slice(admonition.whitespaces);
+        }
+    } else if (isInQuote) {
+        if (line.trim() === '') {
+            // If the line is empty, it's the end of the quote
+            line = ">\n> — " + admonition.title + "\n";
+            isInQuote = false;
+        }
+    } else if (admonition.type) {
+        if (admonition.type === "quote") {
+            // The line is the start of a new quote
+            line = "";
+            isInQuote = true;
+        } else {
+            // The line is the start of a new Admonition
+            isInAdmonition = true;
+            line = ":::" + admonition.type;
+            if (admonition.title) {
+                line += " " + admonition.title;
+            }
+            line += "\n";
+        }
+    }
+
+    return [line, isInAdmonition, isInQuote, admonition];
+};
+
+
+
+
+
+
+
+/* const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boolean): [string, boolean, boolean] => {
     // Extract the admonition type and block title from the line
     const admonitionMatch = line.match(/^>\s*\[!(?<type>.*)](?<title>.*)?/);
-    const admonitionType = admonitionMatch?.groups?.type || '';
-    const blockTitle = admonitionMatch?.groups?.title || '';
+    if (admonitionMatch) {
+        const admonitionType = admonitionMatch?.groups?.type || '';
+        const blockTitle = admonitionMatch?.groups?.title || '';
+        const admonitionWhitespaces = line.indexOf("[") - line.indexOf(">");
+    }
     
-
-    if (isInAdmonition && line === "\n") {
+    if (isInAdmonition && line.trim() === '') {
         // End of admonition block
         isInAdmonition = false;
         return [":::\n\n", isInAdmonition, isInQuote];
     } 
 
-    if (isInQuote && line === "\n") {
+    if (isInQuote && line.trim() === '') {
         // End of quote block
         isInQuote = false;
         return ["> — " + blockTitle, isInAdmonition, isInQuote];
@@ -62,7 +125,8 @@ const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boo
     }
     
     if (isInAdmonition) {
-        const admonitionWhitespaces = line.indexOf("[") - line.indexOf(">");
+        
+        console.log(admonitionWhitespaces)
         // If we're inside an admonition, remove the leading '> ' along with 'admonitionWhitespaces' number of whitespaces
         return [line.slice(admonitionWhitespaces + 1), isInAdmonition, isInQuote];
     }
@@ -85,9 +149,9 @@ const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boo
     }
 
     return [line, isInAdmonition, isInQuote];
-};
+}; */
 
-    
+
 
 
 function checkForLinks(line: string): string {
@@ -164,7 +228,7 @@ function removeNumberPrefix(str: string): string {
 
 function checkForAssets(line: string, processedFileName: string, assetJson: AssetFileInfo[]): string {
     const match = line.match(/!\[(?:\|(\d+)(?:x(\d+))?)?\]\((.*?)\)/);
-
+    logger.info(`😯 ${line}`);
     if (match) {
         //console.log(match)
         const pathAssetRelativeParts = match[3].split('/');

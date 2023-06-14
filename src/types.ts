@@ -7,8 +7,6 @@ export interface Config {
 	secondaryLanguages: string,
 	convertedImageType: string,
 	convertedImageMaxWidth: string,
-	excalidrawSupport: boolean,
-	diagramSupport: boolean,
 	debug: true,
 }
 
@@ -57,3 +55,8 @@ export interface FilesToProcess {
 }
 
 
+export interface Admonition{
+    type: string;
+    title: string;
+    whitespaces: number;
+}
