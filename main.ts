@@ -6,19 +6,14 @@ import pino from 'pino';
 export const logger = pino();
 
 export const config: Config = {
-	obsidian_vault_directory: "./vault",
-	docusaurus_directory: "./website",
-	obsidian_asset_folder_name: "assets",
-	docusaurus_asset_subfolder_name: "assets",
-	i18n_supported: true,
-	language_separator: "__",
-	main_language: "en",
-	secondary_languages: "de, fr",
-	convert_images: true,
-	converted_image_type: "webp",
-	converted_image_max_width: "2500",
-	excalidraw: false,
-	diagram: false,
+	obsidianVaultDirectory: "./vault",
+	docusaurusWebsiteDirectory: "./website",
+	obsidianAssetSubfolderName: "assets",
+	docusaurusAssetSubfolderName: "assets",
+	mainLanguage: "en",
+	secondaryLanguages: "de, fr",
+	convertedImageType: "webp",
+	convertedImageMaxWidth: "2500",
 	debug: true
 }
 export default class Obsidisaurus extends Plugin {
@@ -92,9 +87,9 @@ class SettingTab extends PluginSettingTab {
 			.setDesc('Path to your obsidian vault')
 			.addText(text => text
 				.setPlaceholder('Enter path')
-				.setValue(this.plugin.settings.obsidian_vault_directory)
+				.setValue(this.plugin.settings.obsidianVaultDirectory)
 				.onChange(async (value) => {
-					this.plugin.settings.obsidian_vault_directory = value;
+					this.plugin.settings.obsidianVaultDirectory = value;
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
@@ -102,9 +97,9 @@ class SettingTab extends PluginSettingTab {
 			.setDesc('Path to your docusaurus instance')
 			.addText(text => text
 				.setPlaceholder('Enter paths')
-				.setValue(this.plugin.settings.docusaurus_directory)
+				.setValue(this.plugin.settings.docusaurusWebsiteDirectory)
 				.onChange(async (value) => {
-					this.plugin.settings.docusaurus_directory = value;
+					this.plugin.settings.docusaurusWebsiteDirectory = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -114,9 +109,9 @@ class SettingTab extends PluginSettingTab {
 			.setDesc('Name of Obsidian Asset Folder')
 			.addText(text => text
 				.setPlaceholder('Enter folders')
-				.setValue(this.plugin.settings.obsidian_asset_folder_name)
+				.setValue(this.plugin.settings.obsidianAssetSubfolderName)
 				.onChange(async (value) => {
-					this.plugin.settings.obsidian_asset_folder_name = value;
+					this.plugin.settings.obsidianAssetSubfolderName = value;
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
@@ -124,18 +119,9 @@ class SettingTab extends PluginSettingTab {
 			.setDesc('Name of Docusaurus Asset Folder')
 			.addText(text => text
 				.setPlaceholder('Enter folders')
-				.setValue(this.plugin.settings.docusaurus_asset_subfolder_name)
+				.setValue(this.plugin.settings.docusaurusAssetSubfolderName)
 				.onChange(async (value) => {
-					this.plugin.settings.docusaurus_asset_subfolder_name = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
-			.setName('Image Conversion')
-			.setDesc('Enable image conversion')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.convert_images)
-				.onChange(async (value) => {
-					this.plugin.settings.convert_images = value;
+					this.plugin.settings.docusaurusAssetSubfolderName = value;
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
@@ -147,9 +133,9 @@ class SettingTab extends PluginSettingTab {
 					'webp': 'WebP',
 					'png': 'PNG'
 				})
-				.setValue(this.plugin.settings.converted_image_type)
+				.setValue(this.plugin.settings.convertedImageType)
 				.onChange(async (value) => {
-					this.plugin.settings.converted_image_type = value;
+					this.plugin.settings.convertedImageType = value;
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
@@ -157,50 +143,22 @@ class SettingTab extends PluginSettingTab {
 			.setDesc('Set the max width for the images in [px]')
 			.addText(number => number
 				.setPlaceholder('Enter number')
-				.setValue(this.plugin.settings.converted_image_max_width)
+				.setValue(this.plugin.settings.convertedImageMaxWidth)
 				.onChange(async (value) => {
-					this.plugin.settings.converted_image_max_width = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
-			.setName('Excalidraw')
-			.setDesc('Enable Excalidraw drawings')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.convert_images)
-				.onChange(async (value) => {
-					this.plugin.settings.convert_images = value;
+					this.plugin.settings.convertedImageMaxWidth = value;
 					await this.plugin.saveSettings();
 				}));
 
 		containerEl.createEl('h1', { text: 'Language' });
 
 		new Setting(containerEl)
-			.setName('i18n Support')
-			.setDesc('Enable 18n support')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.i18n_supported)
-				.onChange(async (value) => {
-					this.plugin.settings.i18n_supported = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
-			.setName('Language Seperator')
-			.setDesc('e.g.: note1__en.md')
-			.addText(text => text
-				.setPlaceholder('Enter seperator')
-				.setValue(this.plugin.settings.language_separator)
-				.onChange(async (value) => {
-					this.plugin.settings.language_separator = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
 			.setName('Main Language')
 			.setDesc('Your main language code to publish')
 			.addText(text => text
 				.setPlaceholder('Enter language code')
-				.setValue(this.plugin.settings.main_language)
+				.setValue(this.plugin.settings.mainLanguage)
 				.onChange(async (value) => {
-					this.plugin.settings.main_language = value;
+					this.plugin.settings.mainLanguage = value;
 					await this.plugin.saveSettings();
 				}));
 		new Setting(containerEl)
@@ -208,9 +166,9 @@ class SettingTab extends PluginSettingTab {
 			.setDesc('Name of Docusaurus Asset Folder')
 			.addText(text => text
 				.setPlaceholder('Enter language codes e.g. "fr,de,.."')
-				.setValue(this.plugin.settings.secondary_languages)
+				.setValue(this.plugin.settings.secondaryLanguages)
 				.onChange(async (value) => {
-					this.plugin.settings.secondary_languages = value;
+					this.plugin.settings.secondaryLanguages = value;
 					await this.plugin.saveSettings();
 				}));
 
