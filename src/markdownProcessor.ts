@@ -26,9 +26,8 @@ export default async function processMarkdown(processedFileName: string, sourceC
         // Call your processing functions here
         let processedLine = checkForAssets(line, processedFileName, assetJson);
         processedLine = checkForLinks(line);
-        const [processedLine, newInAdmonition, newInQuote] = convertAdmonition(line, inAdmonition, inQuote);
-        inAdmonition = newInAdmonition;
-        inQuote = newInQuote;
+        [processedLine, inAdmonition, inQuote] = convertAdmonition(processedLine, inAdmonition, inQuote);
+
         // Append the processed line to the transformed content
         transformedContent += processedLine + '\n';
     }
@@ -37,48 +36,88 @@ export default async function processMarkdown(processedFileName: string, sourceC
     return transformedContent;
 }
 
-const convertAdmonition = (line: string, inAdmonition: boolean, inQuote: boolean): [string, boolean, boolean] => {
-    if (inAdmonition) {
-        if (line === "\n") {
-            inAdmonition = false;
-            return [":::" + EOL + EOL, inAdmonition, inQuote];
-        } else {
-            return [line.slice(ADMONITION_WHITESPACES), inAdmonition, inQuote];
-        }
-    } else if (inQuote) {
-        if (line.includes('-')) {
-            return ["> " + EOL + line.replace(/-/g, "—"), inAdmonition, false];
-        } else {
-            return [line, inAdmonition, inQuote];
-        }
-    } else {
-        let admonitionType: string = "";
-        let title: string = "";
-        if (line.startsWith('>')) {
-            const match = line.match(/\[!(.*)\]/);
-            if (match) {
-                admonitionType = match[1];
-                const titleMatch = line.match(/\[!(.*)] (.*)/);
-                if (titleMatch) {
-                    title = titleMatch[2];
-                }
-            }
-            ADMONITION_WHITESPACES = line.indexOf('[') - line.indexOf('>');
-        }
-        if (admonitionType) {
-            if (admonitionType === "quote") {
-                return ["", inAdmonition, true];
-            } else if (!SUPPORTED_ADMONITION_TYPES.includes(admonitionType)) {
-                return [line, inAdmonition, inQuote];
-            } else {
-                inAdmonition = true;
-                return [":::" + admonitionType + (title ? " " + title : "") + EOL, inAdmonition, inQuote];
-            }
-        } else {
-            return [line, inAdmonition, inQuote];
-        }
+const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boolean): [string, boolean, boolean] => {
+    // Extract the admonition type and block title from the line
+    const admonitionMatch = line.match(/^>\s*\[!(?<type>.*)](?<title>.*)?/);
+    const admonitionType = admonitionMatch?.groups?.type || '';
+    const blockTitle = admonitionMatch?.groups?.title || '';
+    
+
+    if (isInAdmonition && line === "\n") {
+        // End of admonition block
+        isInAdmonition = false;
+        return [":::\n\n", isInAdmonition, isInQuote];
+    } 
+
+    if (isInQuote && line === "\n") {
+        // End of quote block
+        isInQuote = false;
+        return ["> — " + blockTitle, isInAdmonition, isInQuote];
     }
+
+    if (isInQuote) {
+        // If we're inside a quote, prefix the line with '>'
+        isInQuote = false;
+        return ["> " + line, isInAdmonition, isInQuote];
+    }
+    
+    if (isInAdmonition) {
+        const admonitionWhitespaces = line.indexOf("[") - line.indexOf(">");
+        // If we're inside an admonition, remove the leading '> ' along with 'admonitionWhitespaces' number of whitespaces
+        return [line.slice(admonitionWhitespaces + 1), isInAdmonition, isInQuote];
+    }
+
+    if (!isInAdmonition && admonitionType) {
+        // Beginning of a new admonition block
+        isInAdmonition = true;
+        line = ":::" + admonitionType;
+        if (blockTitle) {
+            line += " " + blockTitle;
+        }
+        line += "\n";
+    }
+
+   
+    if (admonitionType === "quote") {
+        // Beginning of a new quote block
+        line = "";
+        isInQuote = true;
+    }
+
+    return [line, isInAdmonition, isInQuote];
 };
+
+    
+
+
+function checkForLinks(line: string): string {
+    const pattern = /\[([^\]]+)\]\(([^)]+)\)/;
+    const match = line.match(pattern);
+
+    if (match) {
+
+        const url = match[2];
+        const urlParts = url.split("/");
+
+        if (urlParts.length <= 1) return line;
+
+        let mainFolder = urlParts[0];
+
+        const isBlog = isBlogFolder(mainFolder);
+
+        if (isBlog) {
+            mainFolder = removeBlogSuffix(mainFolder);
+            urlParts[0] = mainFolder;
+        }
+
+        const processedUrlParts = processUrlParts(urlParts, isBlog);
+
+        const newUrl = "/" + processedUrlParts.join("/");
+        return line.replace(url, newUrl);
+    }
+    return line
+}
+
 
 function processUrlParts(urlParts: string[], isBlog: boolean): string[] {
     urlParts = [...urlParts];  // create a copy to not modify original
@@ -108,33 +147,6 @@ function processUrlParts(urlParts: string[], isBlog: boolean): string[] {
     return urlParts;
 }
 
-function checkForLinks(line: string): string {
-    const pattern = /\[([^\]]+)\]\(([^)]+)\)/;
-    const match = line.match(pattern);
-
-    if (match) {
-
-        const url = match[2];
-        const urlParts = url.split("/");
-
-        if (urlParts.length <= 1) return line;
-
-        let mainFolder = urlParts[0];
-
-        const isBlog = isBlogFolder(mainFolder);
-
-        if (isBlog) {
-            mainFolder = removeBlogSuffix(mainFolder);
-            urlParts[0] = mainFolder;
-        }
-
-        const processedUrlParts = processUrlParts(urlParts, isBlog);
-
-        const newUrl = "/" + processedUrlParts.join("/");
-        return line.replace(url, newUrl);
-    }
-    return line
-}
 
 function isBlogFolder(mainFolder: string): boolean {
     return mainFolder === "blog" || mainFolder.endsWith("__blog");
@@ -175,33 +187,33 @@ function checkForAssets(line: string, processedFileName: string, assetJson: Asse
         }
 
         const assetTypeEntry: AssetType = {
-			type: type,
-			files: [processedFileName]
-		};
+            type: type,
+            files: [processedFileName]
+        };
         logger.info(`🔎`);
         // Check if fileName already exists in the assetJson
-		let fileInfo = assetJson.find(item => item.fileName === fileName);
+        let fileInfo = assetJson.find(item => item.fileName === fileName);
         logger.info(fileInfo);
-		if (fileInfo) {
-			// Check if type already exists in includedAssetType array
-			const existingType = fileInfo.AssetTypeInDocument.find(assetType => assetType.type === type);
+        if (fileInfo) {
+            // Check if type already exists in includedAssetType array
+            const existingType = fileInfo.AssetTypeInDocument.find(assetType => assetType.type === type);
             logger.info(`🔎🔎`);
-			if (existingType) {
-				// If type exists, add the new pathKey to the existing files array
-				existingType.files.push(processedFileName);
-			} else {
-				// If type does not exist, add it
-				fileInfo.AssetTypeInDocument.push(assetTypeEntry);
-			}
-		} else {
-			fileInfo = {
-				fileName,
-				fileNameClean,
-				fileExtension,
-				AssetTypeInDocument: [assetTypeEntry],
-			};
-			assetJson.push(fileInfo);
-		}
+            if (existingType) {
+                // If type exists, add the new pathKey to the existing files array
+                existingType.files.push(processedFileName);
+            } else {
+                // If type does not exist, add it
+                fileInfo.AssetTypeInDocument.push(assetTypeEntry);
+            }
+        } else {
+            fileInfo = {
+                fileName,
+                fileNameClean,
+                fileExtension,
+                AssetTypeInDocument: [assetTypeEntry],
+            };
+            assetJson.push(fileInfo);
+        }
 
 
         if ([".jpg", ".png", ".webp", ".jpeg", ".bmp"].includes(fileExtension)) {
@@ -217,7 +229,6 @@ function checkForAssets(line: string, processedFileName: string, assetJson: Asse
     //assetJson.push(file as AssetFilesInfo);
     return line;
 }
-
 
 
 function processImage(line: string, filename: string, fileEnding: string): string {
@@ -272,4 +283,3 @@ function processAsset(line: string) {
     //line = `[Download ${filenameClear}.${fileEnding}](assets/${filenameClear}.${fileEnding})`;
     return line
 }
-
