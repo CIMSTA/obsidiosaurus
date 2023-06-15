@@ -12,6 +12,7 @@ export interface Config {
 
 export interface MainFolder {
 	name: string;
+	size?: string;
 	type: string;
 	files: string[];
 }
@@ -37,8 +38,8 @@ export interface SourceFileInfo {
 
 export interface AssetFileInfo {
 	fileName: string;
-	fileNameClean: string;
 	fileExtension: string;
+	fileNameWithExtension: string;
     AssetTypeInDocument: AssetType[];
 }
 
