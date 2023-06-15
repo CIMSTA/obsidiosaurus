@@ -1,7 +1,8 @@
 import * as readline from 'readline';
 import * as stream from 'stream'
-import { logger } from 'main';
+import { logger, config } from 'main';
 import { AssetFileInfo, AssetType, Admonition } from "./types";
+
 
 export default async function processMarkdown(processedFileName: string, sourceContent: string, assetJson: AssetFileInfo[]): Promise<string> {
     // Create a stream from the source content
@@ -25,7 +26,7 @@ export default async function processMarkdown(processedFileName: string, sourceC
     for await (const line of rl) {
         // Call your processing functions here
         let processedLine = checkForAssets(line, processedFileName, assetJson);
-        processedLine = checkForLinks(line);
+        processedLine = checkForLinks(processedLine);
         [processedLine, inAdmonition, inQuote, admonition] = convertAdmonition(processedLine, inAdmonition, inQuote, admonition);
 
         // Append the processed line to the transformed content
@@ -162,45 +163,41 @@ function removeNumberPrefix(str: string): string {
     return str.replace(/^\d+[\.\-\)\s%20]*\s*/, "").trim();
 }
 
-
 function checkForAssets(line: string, processedFileName: string, assetJson: AssetFileInfo[]): string {
-    const match = line.match(/!\[(?:\|(\d+)(?:x(\d+))?)?\]\((.*?)\)/);
-    if (match) {
-        //console.log(match)
-        const pathAssetRelativeParts = match[3].split('/');
-        //console.log(pathAssetRelativeParts)
-        const fileName = pathAssetRelativeParts[pathAssetRelativeParts.length - 1];
-        const fileNameClean = fileName.split(".")[0];
-        const fileExtension = fileName.split(".")[1];
+    const match = line.match(/!\[(?:\|(?<size>\d+x\d+))?\]\((?<path>.*?)\)/);
+
+    if (match && match.groups) {
+        const { size, path } = match.groups;
+        // Split the path to get the file name and extension
+        const pathParts = path.split('/');
+        const fileNameWithExtension = pathParts[pathParts.length - 1];
+        const [fileName, fileExtension] = fileNameWithExtension.split('.');
 
         logger.info(`🔎 Found asset in: ${line}`);
-        logger.info(pathAssetRelativeParts);
 
         // ![|100](assets/giphy-24%2086606353.gif) -> type 100
         // ![|100x400](assets/giphy-24%2086606353.gif) -> type 100x400
-        let type: string;
-        const resizeMatch = line.match(/\|(\d+)?/);
-        if (resizeMatch && resizeMatch[1]) {
-            type = resizeMatch[1];
-        } else {
-            type = 'standard';
+        let type = 'standard';
+
+        if (size?.trim()) {
+            type = size;
         }
 
         const assetTypeEntry: AssetType = {
             type: type,
             files: [processedFileName]
         };
-        logger.info(`🔎`);
         // Check if fileName already exists in the assetJson
         let fileInfo = assetJson.find(item => item.fileName === fileName);
-        logger.info(fileInfo);
+
         if (fileInfo) {
             // Check if type already exists in includedAssetType array
             const existingType = fileInfo.AssetTypeInDocument.find(assetType => assetType.type === type);
-            logger.info(`🔎🔎`);
             if (existingType) {
                 // If type exists, add the new pathKey to the existing files array
-                existingType.files.push(processedFileName);
+                if (!existingType.files.includes(processedFileName)) {
+                    existingType.files.push(processedFileName);
+                }
             } else {
                 // If type does not exist, add it
                 fileInfo.AssetTypeInDocument.push(assetTypeEntry);
@@ -208,76 +205,57 @@ function checkForAssets(line: string, processedFileName: string, assetJson: Asse
         } else {
             fileInfo = {
                 fileName,
-                fileNameClean,
+                fileNameWithExtension,
                 fileExtension,
                 AssetTypeInDocument: [assetTypeEntry],
             };
             assetJson.push(fileInfo);
         }
-
-
-        if ([".jpg", ".png", ".webp", ".jpeg", ".bmp"].includes(fileExtension)) {
-            //line = processImage(line);
-        } else if (fileExtension.endsWith(".gif")) {
-            line = processGif(line)
-        } else if (fileExtension.endsWith(".svg")) {
-            line = processSvg(line)
+        if (["jpg", "png", "webp", "jpeg", "bmp", "gif", "svg", "excalidraw"].includes(fileExtension)) {
+           line = processImage(line, fileName, fileExtension, type)
         } else {
             line = processAsset(line)
         }
     }
-    //assetJson.push(file as AssetFilesInfo);
     return line;
 }
 
 
-function processImage(line: string, filename: string, fileEnding: string): string {
-    const pattern = /\|(\d+)(?:x(\d+))?/;
-    const resizeMatch = line.match(pattern);
-    logger.info(`🔎 Found image in: ${line}`);
+function processImage(line: string, fileName: string, fileExtension: string, type: string): string {
+    // Determine file size
+    const sizeSuffix = type === "standard" ? "" : `_${type}`;
 
-    const newImageDetails: { filename: string, processed: boolean, filename_new?: string, width?: number, height?: number } = {
-        filename: `${filename}.${fileEnding}`,
-        processed: false,
+    // Map of extensions to their corresponding format transformations
+    const extensionFormatMap: {[index: string]: string} = {
+        // ![|300x200](assets/borat.gif)
+        // ------------------------------------
+        // ![borat](/assets/borat_300x200.gif)      
+        "gif": `![${fileName}](/assets/${fileName}${sizeSuffix}.${fileExtension})`,
+
+        // ![](assets/blackberry.svg)
+        // ------------------------------------------------
+        // ![blackberry](/assets/blackberry.light.svg#light)
+        // ![blackberry](/assets/blackberry.dark.svg#dark)
+        "svg": `![${fileName}](/assets/${fileName}${sizeSuffix}.light.svg#light)\n![${fileName}](/assets/${fileName}${sizeSuffix}.dark.svg#dark)`,
+
+        // ![](assets/blackberry.excalidraw)
+        // ------------------------------------------------
+        // ![blackberry](/assets/blackberry.light.svg#light)
+        // ![blackberry](/assets/blackberry.dark.svg#dark)
+        "excalidraw": `![${fileName}](/assets/${fileName}${sizeSuffix}.excalidraw.light.svg#light)\n![${fileName}](/assets/${fileName}${sizeSuffix}.dark.svg#dark)`
     };
 
-    if (resizeMatch) {
-        const imageWidth = resizeMatch[1];
-        const imageHeight = resizeMatch[2];
-
-        let filenameNew = "";
-        if (imageHeight) {
-            filenameNew = `${filename}_w${imageWidth}xh${imageHeight}`;
-        } else {
-            filenameNew = `${filename}_w${imageWidth}`;
-        }
-
-        newImageDetails.filename_new = filenameNew;
-        newImageDetails.width = Number(imageWidth);
-        newImageDetails.height = Number(imageHeight);
+    // Check if the file extension exists in the format map
+    if (extensionFormatMap[fileExtension]) {
+        line = extensionFormatMap[fileExtension];
     } else {
-        newImageDetails.filename_new = filename;
+        
+        line = `![${fileName}](/assets/${fileName}${sizeSuffix}.${config.convertedImageType})`
     }
-
-    const alreadyExists = imageDetails.some(imageDetail => imageDetail.filename_new === newImageDetails.filename_new);
-
-    if (!alreadyExists) {
-        imageDetails.push(newImageDetails);
-    }
-
-    const string = `![](/${dstAssetSubfolder}/${newImageDetails.filename_new}.${convertImageType})`;
-    logger.debug(`🟢 Processed image string: ${string}`);
-
-    return string;
+    
+    return line;
 }
 
-function processSvg(line: string) {
-    return line
-}
-
-function processGif(line: string) {
-    return line
-}
 
 function processAsset(line: string) {
     //line = `[Download ${filenameClear}.${fileEnding}](assets/${filenameClear}.${fileEnding})`;
