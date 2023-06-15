@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
-import { AssetFileInfo, AssetType} from "./types";
+import { AssetFileInfo, AssetType } from "./types";
 import { config } from "main";
 
 
@@ -61,11 +61,6 @@ export async function convertAndResizeImage(assetFileInfo: AssetFileInfo) {
 }
 
 
-
-interface Config {
-    docusaurusDirectory: string;
-    docusaurusAssetSubfolderName: string;
-}
 
 const convertSvgColors = async (inputFile: string, srcPath: string) => {
     const { docusaurusWebsiteDirectory, docusaurusAssetSubfolderName } = config;
