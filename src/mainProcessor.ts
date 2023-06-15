@@ -128,7 +128,7 @@ function getMainfolders(folderPath: string): MainFolder[] {
                 type = "blog";
             } else if (object.includes("docs")) {
                 type = "docs";
-            } else if (object.includes(config.obsidian_asset_folder_name)) {
+            } else if (object.includes(config.obsidianAssetSubfolderName)) {
                 type = "assets";
             } else {
                 type = "ignore";
