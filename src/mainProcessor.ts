@@ -10,7 +10,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { config } from "main";
 
-
 export default async function obsidiosaurusProcess(basePath: string): Promise<boolean> {
 
     // Get the main folders of the vault e.g. docs, assets, ..
@@ -64,8 +63,6 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
         }
       }
       
-
-
     await processAssetDeletion(filesToDelete, assetJson, allSourceAssetsInfo)
 
 
@@ -94,6 +91,8 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     await copyMarkdownFilesToTarget(filesToMarkdownProcess, basePath, targetJson, assetJson);
 
     await fs.promises.writeFile('allFilesInfo.json', JSON.stringify(targetJson, null, 2));
+
+    await processAssetfromSource(allSourceAssetsInfo, );
 
 
     logger.info("✅ Obsidiosaurus run successfully");
@@ -474,25 +473,27 @@ async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<Source
     return files as SourceFileInfo[];
 }
 
-/// Start Coversion Process
+////////////////////////////////////////////////////////////////
+// Markdown Conversion
+////////////////////////////////////////////////////////////////
 
 async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], basePath: string, targetJson: Partial<SourceFileInfo>[], assetJson: AssetFileInfo[]) {
 
     const results: SourceFileInfo[] = [];
 
     const promises = files.map(async (file) => {
-        const { pathTargetAbsolute, pathSourceAbsolute } = file
+        const { pathTargetAbsolute, pathSourceAbsolute, pathSourceRelative } = file
         // Ensure the directory exists
 
-        if (pathTargetAbsolute && pathSourceAbsolute) {
+        if (pathTargetAbsolute && pathSourceAbsolute && pathSourceRelative) {
             await ensureDirectoryExistence(pathTargetAbsolute);
 
             const sourceContent = await fs.promises.readFile(pathSourceAbsolute, 'utf-8');
-            // Actual conversion
-            const { pathSourceRelative } = file
+            // Actual markdown conversion process
             const transformedContent = await processMarkdown(pathSourceRelative, sourceContent, assetJson);
-            await fs.promises.writeFile(pathTargetAbsolute, String(transformedContent));
-
+            if (transformedContent) {
+                await fs.promises.writeFile(pathTargetAbsolute, String(transformedContent));
+            }
 
             if (config.debug) {
                 logger.info(`📤 Converted file from ${pathSourceAbsolute} to ${pathTargetAbsolute}`);
@@ -512,6 +513,11 @@ async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], baseP
     await fs.promises.writeFile('assetInfo.json', JSON.stringify(assetJson, null, 2));
 }
 
+////////////////////////////////////////////////////////////////
+// Asset
+////////////////////////////////////////////////////////////////
+
+
 async function processAssetDeletion(filesToDelete: FilesToProcess[], assetJson: AssetFileInfo[], allSourceAssetsInfo:  Partial<SourceFileInfo>[]) {
     console.log(filesToDelete)
     // Iterate over files to delete
@@ -529,24 +535,22 @@ async function processAssetDeletion(filesToDelete: FilesToProcess[], assetJson: 
                 const inclusion = asset.AssetTypeInDocument[j];
                 
                 // Iterate over all files in the asset type
-                for (let k = inclusion.files.length - 1; k >= 0; k--) {
-                    if (inclusion.files[k] === fileToDelete.pathKey) {
+                for (let k = inclusion.inFile.length - 1; k >= 0; k--) {
+                    if (inclusion.inFile[k] === fileToDelete.pathKey) {
                         // Delete the file from the files array
-                        inclusion.files.splice(k, 1);
+                        inclusion.inFile.splice(k, 1);
 
                         // If there are no more files, delete the asset type
-                        if (inclusion.files.length === 0) {
+                        if (inclusion.inFile.length === 0) {
                             asset.AssetTypeInDocument.splice(j, 1);
                             // TODO Delete the asset e.g. image1_w100.webp
                             await deleteAssetfromTarget()
                         }
 
-                        
-                        
                         // If there are no more asset types, delete the asset
                         if (asset.AssetTypeInDocument.length === 0) {
                             
-                            await moveAssetfromSource(asset, allSourceAssetsInfo); // TODO: implement deleteAsset()
+                            await deleteAssetfromTarget;
                             assetJson.splice(i, 1);
                         }
 
@@ -561,24 +565,7 @@ async function processAssetDeletion(filesToDelete: FilesToProcess[], assetJson: 
 async function deleteAssetfromTarget() {
 
 }
+async function processAssetfromSource(allSourceAssetsInfo: Partial<SourceFileInfo>[], ) {
 
 
-async function moveAssetfromSource(assetToDelete: AssetFileInfo, allSourceAssetsInfo: Partial<SourceFileInfo>[]) {
-
-    // TODO move to nonUsedAssets
-/*     try {
-        await fs.promises.unlink(path.join(basePath, targetFile.pathTargetRelative));
-        logger.info(`✅ Successfully deleted file %s`, targetFile.pathTargetRelative);
-
-
-    } catch (error) {
-        // If error code is ENOENT, the file was not found, which we consider as a successful deletion.
-        if (error) {
-            logger.error(`❌ Failed to delete file %s: %s`, targetFile.pathTargetRelative, error);
-        
-        }
-    } */
-    console.log("💥💢💌💌💟💟💢💌💢💢💢💢💥💥💢💢")
-    console.log(assetToDelete)
-    return
 }
