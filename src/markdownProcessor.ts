@@ -37,7 +37,6 @@ export default async function processMarkdown(processedFileName: string, sourceC
     return transformedContent;
 }
 
-
 const parseAdmonitionData = (line: string): Admonition => {
     const match = line.match(/^>\s*\[!(?<type>.*)](?<title>.*)?/);
     if (!match) return { type: '', title: '', whitespaces: 0 };
@@ -48,7 +47,6 @@ const parseAdmonitionData = (line: string): Admonition => {
         whitespaces: line.indexOf("[") - line.indexOf(">"),
     };
 };
-
 
 // Function to convert Admonition and quote blocks
 const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boolean, admonition: Admonition): [string, boolean, boolean, Admonition] => {
@@ -120,7 +118,6 @@ function checkForLinks(line: string): string {
     return line
 }
 
-
 function processUrlParts(urlParts: string[], isBlog: boolean): string[] {
     urlParts = [...urlParts];  // create a copy to not modify original
 
@@ -149,7 +146,6 @@ function processUrlParts(urlParts: string[], isBlog: boolean): string[] {
     return urlParts;
 }
 
-
 function isBlogFolder(mainFolder: string): boolean {
     return mainFolder === "blog" || mainFolder.endsWith("__blog");
 }
@@ -167,36 +163,41 @@ function checkForAssets(line: string, processedFileName: string, assetJson: Asse
     const match = line.match(/!\[(?:\|(?<size>\d+x\d+))?\]\((?<path>.*?)\)/);
 
     if (match && match.groups) {
-        const { size, path } = match.groups;
+        // eslint-disable-next-line prefer-const
+        let { size, path } = match.groups;
         // Split the path to get the file name and extension
         const pathParts = path.split('/');
         const fileNameWithExtension = pathParts[pathParts.length - 1];
-        const [fileName, fileExtension] = fileNameWithExtension.split('.');
+        // eslint-disable-next-line prefer-const
+        let [fileName, fileExtension] = fileNameWithExtension.split('.');
+    
+        fileName = fileName.replace(/ /g, "_");
+        fileName = fileName.replace(/%20/g, "_");
 
         logger.info(`🔎 Found asset in: ${line}`);
 
         // ![|100](assets/giphy-24%2086606353.gif) -> type 100
         // ![|100x400](assets/giphy-24%2086606353.gif) -> type 100x400
-        let type = 'standard';
 
-        if (size?.trim()) {
-            type = size;
+        if (!size?.trim()) {
+            size = "standard"
         }
 
         const assetTypeEntry: AssetType = {
-            type: type,
-            files: [processedFileName]
+            lightDark: false,
+            fileType: fileExtension,
+            inFile: [processedFileName],
         };
         // Check if fileName already exists in the assetJson
         let fileInfo = assetJson.find(item => item.fileName === fileName);
 
         if (fileInfo) {
             // Check if type already exists in includedAssetType array
-            const existingType = fileInfo.AssetTypeInDocument.find(assetType => assetType.type === type);
-            if (existingType) {
+            const existingSize = fileInfo.AssetTypeInDocument.find(assetSize => assetSize.size === size);
+            if (existingSize) {
                 // If type exists, add the new pathKey to the existing files array
-                if (!existingType.files.includes(processedFileName)) {
-                    existingType.files.push(processedFileName);
+                if (!existingSize.inFile.includes(processedFileName)) {
+                    existingSize.inFile.push(processedFileName);
                 }
             } else {
                 // If type does not exist, add it
@@ -208,11 +209,12 @@ function checkForAssets(line: string, processedFileName: string, assetJson: Asse
                 fileNameWithExtension,
                 fileExtension,
                 AssetTypeInDocument: [assetTypeEntry],
+                sourcePath: path
             };
             assetJson.push(fileInfo);
         }
         if (["jpg", "png", "webp", "jpeg", "bmp", "gif", "svg", "excalidraw"].includes(fileExtension)) {
-           line = processImage(line, fileName, fileExtension, type)
+           line = processImage(line, fileName, fileExtension, size)
         } else {
             line = processAsset(line)
         }
@@ -220,10 +222,9 @@ function checkForAssets(line: string, processedFileName: string, assetJson: Asse
     return line;
 }
 
-
-function processImage(line: string, fileName: string, fileExtension: string, type: string): string {
+function processImage(line: string, fileName: string, fileExtension: string, size: string): string {
     // Determine file size
-    const sizeSuffix = type === "standard" ? "" : `_${type}`;
+    const sizeSuffix = size === "standard" ? "" : `_${size}`;
 
     // Map of extensions to their corresponding format transformations
     const extensionFormatMap: {[index: string]: string} = {
@@ -252,10 +253,9 @@ function processImage(line: string, fileName: string, fileExtension: string, typ
         
         line = `![${fileName}](/assets/${fileName}${sizeSuffix}.${config.convertedImageType})`
     }
-    
+
     return line;
 }
-
 
 function processAsset(line: string) {
     //line = `[Download ${filenameClear}.${fileEnding}](assets/${filenameClear}.${fileEnding})`;
