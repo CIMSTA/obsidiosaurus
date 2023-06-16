@@ -41,14 +41,19 @@ export interface AssetFileInfo {
 	fileExtension: string;
 	fileNameWithExtension: string;
     AssetTypeInDocument: AssetType[];
+	sourcePath: string;
 }
 
 export interface AssetType {
-	type: string;
-	files: string[];
+	size?: string;
+	fileType: string;
+	inFile: string[];
+	lightDark: boolean;
+	targetPathStandard?: string;
+	targetPathLight?: string;
+	targetPathDark?: string;
   }
   
-
 export interface FilesToProcess {
 	index: number;
 	reason: string;
