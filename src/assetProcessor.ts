@@ -1,11 +1,8 @@
 import sharp from 'sharp';
-import fs from 'fs';
+import { promises as fs } from 'fs';
 import path from 'path';
 import { AssetFileInfo, AssetType } from "./types";
 import { config } from "main";
-
-
-
 
 // Calculate new dimensions based on width and height ratio
 async function calculateDimensions(assetFileInfo: AssetFileInfo, type: string): Promise<{ newWidth: number, newHeight: number | undefined }> {
@@ -26,25 +23,27 @@ async function calculateDimensions(assetFileInfo: AssetFileInfo, type: string): 
 
 // Process each Asset Type
 async function processAssetType(assetType: AssetType, assetFileInfo: AssetFileInfo) {
-    const { newWidth, newHeight } = await calculateDimensions(assetFileInfo, assetType.type);
+    if (assetType.size != "standard") {
+    const { newWidth, newHeight } = await calculateDimensions(assetFileInfo, assetType.size);
     const options: sharp.ResizeOptions = { 
         width: newWidth, 
         height: newHeight,
         fit: 'inside' 
     };
 
-    for (const file of assetType.files) {
+    for (const file of assetType.inFile) {
         const filePath = path.join(file, assetFileInfo.fileName);
         await sharp(filePath)
             .resize(options)
             .toFile(buildOutputFilePath(assetFileInfo));
     }
 }
+}
 
 // Build output file path
 function buildOutputFilePath(assetFileInfo: AssetFileInfo) {
     const dstDir = path.join(config.docusaurusWebsiteDirectory, "static", config.docusaurusAssetSubfolderName);
-    const fileName = assetFileInfo.fileNameClean.replace(" ", "_") + "." + config;
+    const fileName = assetFileInfo.fileName.replace(" ", "_") + "." + config;
     const dstFilePath = path.join(dstDir, fileName);
 
     // Ensure destination directory exists
@@ -72,6 +71,7 @@ const convertSvgColors = async (inputFile: string, srcPath: string) => {
     const darkOutputFile = `${baseName}.dark.svg`;
 
     const assetDirPath = path.join(docusaurusWebsiteDirectory, 'static', docusaurusAssetSubfolderName);
+    
     await fs.mkdir(assetDirPath, { recursive: true });
 
     const data = await fs.readFile(path.join(srcPath, inputFile), 'utf8');
@@ -82,4 +82,5 @@ const convertSvgColors = async (inputFile: string, srcPath: string) => {
 
     console.log(`✅ Completed converting colors for SVG: ${inputFile}`);
 };
+
 
