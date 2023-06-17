@@ -1,4 +1,4 @@
-import { MainFolder, SourceFileInfo, FilesToProcess, AssetFileInfo } from "./types";
+import { MainFolder, SourceFileInfo, FilesToProcess, Asset } from "./types";
 import processMarkdown from "./markdownProcessor";
 import { Notice } from 'obsidian';
 import { logger } from 'main';
@@ -9,19 +9,23 @@ import { logger } from 'main';
 import * as fs from 'fs';
 import * as path from 'path';
 import { config } from "main";
+import util from 'util';
+
+
 
 export default async function obsidiosaurusProcess(basePath: string): Promise<boolean> {
-
+    const websitePath = path.join(basePath, "website")
+    const vaultPath = path.join(basePath, "vault")
     // Get the main folders of the vault e.g. docs, assets, ..
-    const mainFolders = getMainfolders(basePath);
-    mainFolders.forEach(folder => processSingleFolder(folder, basePath));
+    const mainFolders = getMainfolders(vaultPath);
+    mainFolders.forEach(folder => processSingleFolder(folder, vaultPath));
 
     if (config.debug) {
         logger.info('📁 Folder structure with Files: %s', JSON.stringify(mainFolders));
     }
 
     // Get all the file including the necessary infos from the mainfolders
-    const allInfo = mainFolders.flatMap(folder => folder.files.map(file => getSourceFileInfo(basePath, folder, file)));
+    const allInfo = mainFolders.flatMap(folder => folder.files.map(file => getSourceFileInfo(basePath, folder, file, vaultPath)));
 
     // Separate assets from the other files
     const allSourceFilesInfo: Partial<SourceFileInfo>[] = allInfo.filter(info => info.type !== 'assets');
@@ -30,8 +34,9 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     // Try to read in the targetJson, this should represent the current status of the files in Docusaurus
     // when there is no file initialize an empty array
     let targetJson: SourceFileInfo[];
+
     try {
-        const jsonData = await fs.promises.readFile('allFilesInfo.json', 'utf-8');
+        const jsonData = await fs.promises.readFile(path.join(basePath,'allFilesInfo.json'), 'utf-8');
         targetJson = JSON.parse(jsonData);
     } catch (error) {
         console.error('Error reading file:', error);
@@ -50,27 +55,29 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     await deleteFiles(filesToDelete, targetJson, basePath);
     let assetJson = [];
 
-    // Read in the assetInfo Json File, this contains all infos about processed images, pdfs,..
+    // Read in the assetInfo Json File, this contains all infos about currently used images, pdfs,..
     try {
-        assetJson = JSON.parse(await fs.promises.readFile('assetInfo.json', 'utf-8'));
+        assetJson = JSON.parse(await fs.promises.readFile(path.join(basePath,'assetInfo.json'), 'utf-8'));
       } catch (error) {
         if (error.code === 'ENOENT') {
-          // File doesn't exist, create it with an empty JSON array
-          await fs.promises.writeFile('assetInfo.json', '[]');
+          // If file doesn't exist, create it with an empty JSON array
+          await fs.promises.writeFile(path.join(basePath,'assetInfo.json'), '[]');
           console.log('Created assetInfo.json');
         } else {
           console.error('Error reading file:', error);
         }
       }
       
-    await processAssetDeletion(filesToDelete, assetJson, allSourceAssetsInfo)
-
+    //await processAssetDeletion(filesToDelete, assetJson, allSourceAssetsInfo, websitePath)
+    await removeAssetReferences(filesToDelete, assetJson, websitePath);
+    await fs.promises.writeFile(path.join(basePath,'assetJson_.json'), JSON.stringify(assetJson, null, 2));
 
     // Write files
 
-    await fs.promises.writeFile('allFilesInfo.json', JSON.stringify(targetJson, null, 2));
-    await fs.promises.writeFile('allFilesInfo_Test.json', JSON.stringify(targetJson, null, 2));
-    targetJson = JSON.parse(await fs.promises.readFile('allFilesInfo.json', 'utf-8'));
+    await fs.promises.writeFile(path.join(basePath,'allFilesInfo.json'), JSON.stringify(targetJson, null, 2));
+    targetJson = JSON.parse(await fs.promises.readFile(path.join(basePath,'allFilesInfo.json'), 'utf-8'));
+
+    await fs.promises.writeFile(path.join(basePath,'allSourceAssetsInfo.json'), JSON.stringify(allSourceAssetsInfo, null, 2));
 
 
     const filesToProcess = await compareSource(allSourceFilesInfo, targetJson);
@@ -90,9 +97,13 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
     await copyMarkdownFilesToTarget(filesToMarkdownProcess, basePath, targetJson, assetJson);
 
-    await fs.promises.writeFile('allFilesInfo.json', JSON.stringify(targetJson, null, 2));
+    await fs.promises.writeFile(path.join(basePath,'allFilesInfo.json'), JSON.stringify(targetJson, null, 2));
 
-    await processAssetfromSource(allSourceAssetsInfo, );
+    const assetsToProcess = await getAssetsToProcess(assetJson);
+
+    new Notice(`⚙ Processing ${assetsToProcess.length} Assets`)
+
+    await copyAssetFilesToTarget(vaultPath, websitePath, assetJson, assetsToProcess)
 
 
     logger.info("✅ Obsidiosaurus run successfully");
@@ -235,17 +246,14 @@ async function compareSource(sourceJson: Partial<SourceFileInfo>[], targetJson: 
 // FILES
 ////////////////////////////////////////////////////////////////
 
-function getSourceFileInfo(basePath: string, folder: MainFolder, filePath: string): Partial<File> {
+function getSourceFileInfo(basePath: string, folder: MainFolder, filePath: string, vaultPath): Partial<File> {
     filePath = path.resolve(filePath);
     const stats = fs.statSync(filePath);
     const fileName = path.basename(filePath);
 
-    // check for _category_.yml.md
-    // TODO add 
-
     const { fileNameClean, fileExtension, language } = sanitizeFileName(fileName);
 
-    const pathSourceRelative = path.relative(basePath, filePath); // basePath is defined in outer scope.
+    const pathSourceRelative = path.relative(vaultPath, filePath); // basePath is defined in outer scope.
 
     let sourceFileInfo: Partial<SourceFileInfo> = {
         fileName,
@@ -295,7 +303,6 @@ function sanitizeFileName(fileName: string): { fileNameClean: string, fileExtens
 
 function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string): Partial<SourceFileInfo> {
     const { type, language, pathSourceRelative, mainFolder, parentFolder, fileExtension } = sourceFileInfo;
-    const docusaurusRelativePathToVault = `..\\${config.docusaurusWebsiteDirectory}\\`;
 
     if (!type || !language || !pathSourceRelative || !parentFolder || !fileExtension || !mainFolder) {
         logger.error('🚨 Required properties missing on sourceFileInfo');
@@ -360,8 +367,8 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
         }
     }
 
-    sourceFileInfo.pathTargetRelative = path.join(docusaurusRelativePathToVault, mainPath, finalPathSourceRelative);
-    sourceFileInfo.pathTargetAbsolute = path.resolve(basePath, docusaurusRelativePathToVault, mainPath, finalPathSourceRelative);
+    sourceFileInfo.pathTargetRelative = path.join(mainPath, finalPathSourceRelative);
+    sourceFileInfo.pathTargetAbsolute = path.join(basePath, config.docusaurusWebsiteDirectory, sourceFileInfo.pathTargetRelative)
 
     return sourceFileInfo;
 }
@@ -477,7 +484,7 @@ async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<Source
 // Markdown Conversion
 ////////////////////////////////////////////////////////////////
 
-async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], basePath: string, targetJson: Partial<SourceFileInfo>[], assetJson: AssetFileInfo[]) {
+async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], basePath: string, targetJson: Partial<SourceFileInfo>[], assetJson: Asset[]) {
 
     const results: SourceFileInfo[] = [];
 
@@ -510,62 +517,163 @@ async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], baseP
     // Add results to targetJson
     targetJson.push(...results);
 
-    await fs.promises.writeFile('assetInfo.json', JSON.stringify(assetJson, null, 2));
+    await fs.promises.writeFile(path.join(basePath,'assetInfo.json'), JSON.stringify(assetJson, null, 2));
 }
 
 ////////////////////////////////////////////////////////////////
 // Asset
 ////////////////////////////////////////////////////////////////
 
-
-async function processAssetDeletion(filesToDelete: FilesToProcess[], assetJson: AssetFileInfo[], allSourceAssetsInfo:  Partial<SourceFileInfo>[]) {
-    console.log(filesToDelete)
-    // Iterate over files to delete
+async function removeAssetReferences(filesToDelete: FilesToProcess[], assetJson: Asset[], websitePath: string): Promise<Asset[]> {
     for (const fileToDelete of filesToDelete) {
         if (!fileToDelete.pathKey) {
             continue;
         }
-        
-        // Iterate over assets
-        for (let i = assetJson.length - 1; i >= 0; i--) {
-            const asset = assetJson[i];
 
-            // Iterate over asset's type inclusions
-            for (let j = asset.AssetTypeInDocument.length - 1; j >= 0; j--) {
-                const inclusion = asset.AssetTypeInDocument[j];
-                
-                // Iterate over all files in the asset type
-                for (let k = inclusion.inFile.length - 1; k >= 0; k--) {
-                    if (inclusion.inFile[k] === fileToDelete.pathKey) {
-                        // Delete the file from the files array
-                        inclusion.inFile.splice(k, 1);
+        // Iterate backwards through each asset in the json
+        for (let assetIndex = assetJson.length - 1; assetIndex >= 0; assetIndex--) {
+            const asset = assetJson[assetIndex];
 
-                        // If there are no more files, delete the asset type
-                        if (inclusion.inFile.length === 0) {
-                            asset.AssetTypeInDocument.splice(j, 1);
-                            // TODO Delete the asset e.g. image1_w100.webp
-                            await deleteAssetfromTarget()
-                        }
+            // Iterate backwards through each size in the asset
+            for (let sizeIndex = asset.sizes.length - 1; sizeIndex >= 0; sizeIndex--) {
+                const size = asset.sizes[sizeIndex];
 
-                        // If there are no more asset types, delete the asset
-                        if (asset.AssetTypeInDocument.length === 0) {
-                            
-                            await deleteAssetfromTarget;
-                            assetJson.splice(i, 1);
-                        }
+                // Find the index of the filePath in inDocuments array
+                const docIndex = size.inDocuments.indexOf(fileToDelete.pathKey);
 
-                        // Since we deleted the file, we don't need to keep looking for it
-                        break;
+                // If the filePath is found in the inDocuments array
+                if (docIndex !== -1) {
+                    // Remove the filePath from inDocuments array
+                    size.inDocuments.splice(docIndex, 1);
+                    logger.info(`🗑 Removed filePath from inDocuments: ${fileToDelete.pathKey}`);
+
+                    // If inDocuments array is empty, remove the size entry
+                    if (size.inDocuments.length === 0) {
+                        const assetToRemove = size.newName
+                        await removeAssetFromTarget(assetToRemove, config.docusaurusAssetSubfolderName, websitePath)
+
+                        asset.sizes.splice(sizeIndex, 1);
+                        logger.info(`🔥 Removed size from sizes: ${size.size}`);
                     }
+
+                    
+                }
+            }
+
+            // If sizes array is empty, remove the asset entry
+            if (asset.sizes.length === 0) {
+                assetJson.splice(assetIndex, 1);
+                logger.info(`💥 Removed asset from assetJson: ${asset.fileName}`);
+            }
+        }
+    }
+
+    return assetJson;
+}
+
+async function removeAssetFromTarget(assetToRemove: string[], docusaurusAssetSubfolderName: string, websitePath: string): Promise<void> {
+    for (const asset of assetToRemove) {
+        const assetPath = path.join(websitePath, docusaurusAssetSubfolderName, asset);      
+        try {
+            await fs.promises.unlink(assetPath);
+            logger.info(`🗑 Removed asset: ${assetPath}`);
+        } catch (error) {
+            logger.error(`❌ Error removing asset: ${assetPath}`, error);
+        }
+    }
+}
+
+const copyFile = util.promisify(fs.copyFile);
+const mkdir = util.promisify(fs.mkdir);
+
+async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string, assetJson: Asset[], assetsToProcess: {assetIndex: number, sizeIndex: number, path: string}[] ): Promise<void> {
+    
+    const docusaurusAssetFolderPath = path.join(websitePath, "static", config.docusaurusAssetSubfolderName)
+    await mkdir(docusaurusAssetFolderPath, { recursive: true });
+
+    for (const assetToProcess of assetsToProcess) {
+        // Use the indexes to find the original asset and size
+        const asset = assetJson[assetToProcess.assetIndex];
+        const size = asset.sizes[assetToProcess.sizeIndex];
+
+        // Build the original file path
+        const originalFilePath = path.join(vaultPathPath, config.obsidianAssetSubfolderName, asset.originalFileName).replace(/%20/g, " ");
+
+        for (const newName of size.newName) {
+            const newFilePath = path.join(docusaurusAssetFolderPath, newName);
+            
+
+            // Check if it's an image
+            if (["jpg", "png", "webp", "jpeg", "bmp", "gif"].includes(asset.fileExtension)) {
+                try {
+
+                    await resizeImage(originalFilePath, newFilePath, size.size);
+                    console.log(`Image resized and copied from ${originalFilePath} to ${newFilePath}`);
+                } catch (error) {
+                    console.error(`Failed to resize image and copy from ${originalFilePath} to ${newFilePath}: ${error.message}`);
+                }
+            } else {
+                // Copy the file to the new location
+                try {
+                    await copyFile(originalFilePath, newFilePath);
+                    console.log(`File copied from ${originalFilePath} to ${newFilePath}`);
+                } catch (error) {
+                    console.error(`Failed to copy file from ${originalFilePath} to ${newFilePath}: ${error.message}`);
                 }
             }
         }
     }
 }
-async function deleteAssetfromTarget() {
 
+const gm = require('gm').subClass({ imageMagick: '7+' });
+
+async function resizeImage(originalFilePath: string, newFilePath: string, size: string): Promise<void> {
+
+    let width: number;
+    let height: string | number;
+
+    if (size === "standard") {
+        width = config.convertedImageMaxWidth;
+        height = '';  // auto height
+    } else {
+        const dimensions = size.split("x");
+        width = parseInt(dimensions[0]);
+        height = dimensions.length > 1 ? parseInt(dimensions[1]) : '';
+    }
+
+    gm(originalFilePath)
+    .resize(width, height, '!')
+    .noProfile()
+    .write(newFilePath, function (err) {
+        if (err) console.log(err);
+        if (!err) console.log('done');
+      });
 }
-async function processAssetfromSource(allSourceAssetsInfo: Partial<SourceFileInfo>[], ) {
 
+async function getAssetsToProcess(assetJson: Asset[]): Promise<{assetIndex: number, sizeIndex: number, path: string}[]> {
+    const documents = [];
 
+    // Loop through all assets
+    for (const [assetIndex, asset] of assetJson.entries()) {
+        // Loop through all sizes of each asset
+        for (const [sizeIndex, size] of asset.sizes.entries()) {
+            // Add all documents for each size to the array, along with the asset and size index
+            for (const name of size.newName) {
+                documents.push({assetIndex, sizeIndex, path: name});
+            }
+        }
+    }
+
+    // Check if each document exists, if it does remove it from the array
+    const assetsToProcess = documents.filter(document => {
+        
+        if (fs.existsSync(document.path)) {
+            return false; // Exists, so remove it from the array
+        }
+        return true; // Doesn't exist, so keep it in the array
+    });
+
+    
+
+    return assetsToProcess;
 }
