@@ -1,5 +1,5 @@
 {
-	"name": "Obsidiosaurus",
+	"name": "obsidiosaurus",
 	"version": "1.0.0",
 	"description": "Obsidian to Docusaurus Converter Plugin",
 	"main": "main.js",
@@ -8,7 +8,11 @@
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
-	"keywords": ["Docusaurus", "Converter", "Obsidian.md"],
+	"keywords": [
+		"Docusaurus",
+		"Converter",
+		"Obsidian.md"
+	],
 	"author": "CIMSTA",
 	"license": "MIT",
 	"devDependencies": {
@@ -23,6 +27,8 @@
 	},
 	"dependencies": {
 		"@types/codemirror": "^5.60.7",
+		"@types/gm": "^1.25.1",
+		"gm": "^1.25.0",
 		"pino": "^8.14.1",
 		"sharp": "^0.32.1"
 	}
