@@ -1,7 +1,7 @@
 import * as readline from 'readline';
 import * as stream from 'stream'
 import { logger, config } from 'main';
-import { AssetFileInfo, AssetType, Admonition } from "./types";
+import { Admonition, Asset, Size } from "./types";
 
 
 export default async function processMarkdown(processedFileName: string, sourceContent: string, assetJson: AssetFileInfo[]): Promise<string> {
@@ -159,105 +159,103 @@ function removeNumberPrefix(str: string): string {
     return str.replace(/^\d+[\.\-\)\s%20]*\s*/, "").trim();
 }
 
-function checkForAssets(line: string, processedFileName: string, assetJson: AssetFileInfo[]): string {
+function getOrCreateSize(sizes: Size[], size: string, processedFileName: string): Size {
+    let existingSize = sizes.find(s => s.size === size);
+    if (!existingSize) {
+        existingSize = {
+            size,
+            inDocuments: [processedFileName],
+            newName: []
+        };
+        sizes.push(existingSize);
+    } else if (!existingSize.inDocuments.includes(processedFileName)) {
+        existingSize.inDocuments.push(processedFileName);
+    }
+    return existingSize;
+}
+
+function checkForAssets(line: string, processedFileName: string, assetJson: Asset[]): string {
     const match = line.match(/!\[(?:\|(?<size>\d+x\d+))?\]\((?<path>.*?)\)/);
 
     if (match && match.groups) {
         // eslint-disable-next-line prefer-const
         let { size, path } = match.groups;
-        // Split the path to get the file name and extension
-        const pathParts = path.split('/');
-        const fileNameWithExtension = pathParts[pathParts.length - 1];
+        const fileNameWithExtension = path.split('/').pop();
         // eslint-disable-next-line prefer-const
         let [fileName, fileExtension] = fileNameWithExtension.split('.');
-    
         fileName = fileName.replace(/ /g, "_");
         fileName = fileName.replace(/%20/g, "_");
-
-        logger.info(`🔎 Found asset in: ${line}`);
-
-        // ![|100](assets/giphy-24%2086606353.gif) -> type 100
-        // ![|100x400](assets/giphy-24%2086606353.gif) -> type 100x400
 
         if (!size?.trim()) {
             size = "standard"
         }
 
-        const assetTypeEntry: AssetType = {
-            lightDark: false,
-            fileType: fileExtension,
-            inFile: [processedFileName],
-        };
-        // Check if fileName already exists in the assetJson
-        let fileInfo = assetJson.find(item => item.fileName === fileName);
-
-        if (fileInfo) {
-            // Check if type already exists in includedAssetType array
-            const existingSize = fileInfo.AssetTypeInDocument.find(assetSize => assetSize.size === size);
-            if (existingSize) {
-                // If type exists, add the new pathKey to the existing files array
-                if (!existingSize.inFile.includes(processedFileName)) {
-                    existingSize.inFile.push(processedFileName);
-                }
-            } else {
-                // If type does not exist, add it
-                fileInfo.AssetTypeInDocument.push(assetTypeEntry);
-            }
+        let existingAsset = assetJson.find(item => item.fileName === fileName);
+        let existingSize: Size;
+        if (existingAsset) {
+            existingSize = getOrCreateSize(existingAsset.sizes, size, processedFileName);
         } else {
-            fileInfo = {
+            existingAsset = {
                 fileName,
-                fileNameWithExtension,
+                originalFileName: fileNameWithExtension,
                 fileExtension,
-                AssetTypeInDocument: [assetTypeEntry],
-                sourcePath: path
+                dateModified: new Date().toISOString(),
+                sourcePathRelative: path,
+                sizes: []
             };
-            assetJson.push(fileInfo);
+            existingSize = getOrCreateSize(existingAsset.sizes, size, processedFileName);
+            assetJson.push(existingAsset);
         }
+
         if (["jpg", "png", "webp", "jpeg", "bmp", "gif", "svg", "excalidraw"].includes(fileExtension)) {
-           line = processImage(line, fileName, fileExtension, size)
+            line = processImage(line, fileName, fileExtension, size, existingSize);
         } else {
-            line = processAsset(line)
+            line = processAsset(line, fileName, fileExtension);
         }
     }
     return line;
 }
 
-function processImage(line: string, fileName: string, fileExtension: string, size: string): string {
-    // Determine file size
+
+function processImage(line: string, fileName: string, fileExtension: string, size: string, sizeObject: Size): string {
     const sizeSuffix = size === "standard" ? "" : `_${size}`;
 
-    // Map of extensions to their corresponding format transformations
     const extensionFormatMap: {[index: string]: string} = {
-        // ![|300x200](assets/borat.gif)
-        // ------------------------------------
-        // ![borat](/assets/borat_300x200.gif)      
-        "gif": `![${fileName}](/assets/${fileName}${sizeSuffix}.${fileExtension})`,
-
-        // ![](assets/blackberry.svg)
-        // ------------------------------------------------
-        // ![blackberry](/assets/blackberry.light.svg#light)
-        // ![blackberry](/assets/blackberry.dark.svg#dark)
-        "svg": `![${fileName}](/assets/${fileName}${sizeSuffix}.light.svg#light)\n![${fileName}](/assets/${fileName}${sizeSuffix}.dark.svg#dark)`,
-
-        // ![](assets/blackberry.excalidraw)
-        // ------------------------------------------------
-        // ![blackberry](/assets/blackberry.light.svg#light)
-        // ![blackberry](/assets/blackberry.dark.svg#dark)
-        "excalidraw": `![${fileName}](/assets/${fileName}${sizeSuffix}.excalidraw.light.svg#light)\n![${fileName}](/assets/${fileName}${sizeSuffix}.dark.svg#dark)`
+        "gif": `/assets/${fileName}${sizeSuffix}.${fileExtension}`,
+        "svg": `/assets/${fileName}${sizeSuffix}.light.svg#light`,
+        "excalidraw": `/assets/${fileName}${sizeSuffix}.excalidraw.light.svg#light`
     };
 
-    // Check if the file extension exists in the format map
-    if (extensionFormatMap[fileExtension]) {
-        line = extensionFormatMap[fileExtension];
-    } else {
-        
-        line = `![${fileName}](/assets/${fileName}${sizeSuffix}.${config.convertedImageType})`
-    }
+    let newPath = `/assets/${fileName}${sizeSuffix}.${config.convertedImageType}`;
 
+    if (extensionFormatMap[fileExtension]) {
+        newPath = extensionFormatMap[fileExtension];
+        line = `![${fileName}](${newPath})`;
+
+        // Special handling for SVG and excalidraw files
+        if (fileExtension === "svg" || fileExtension === "excalidraw") {
+            const darkPath = newPath.replace('.light.svg#light', '.dark.svg#dark');
+            line += `\n![${fileName}](${darkPath})`;
+
+            const darkName = darkPath.split("/").pop()?.split("#")[0];
+            // Only add darkName if it doesn't already exist in sizeObject.newName
+            if (darkName && !sizeObject.newName.includes(darkName)) {
+                sizeObject.newName.push(darkName);
+            }
+        }
+    } else {
+        line = `![${fileName}](${newPath})`;
+    }
+    
+    const newName = newPath.split("/").pop()?.split("#")[0];
+    // Only add newName if it doesn't already exist in sizeObject.newName
+    if (newName && !sizeObject.newName.includes(newName)) {
+        sizeObject.newName.push(newName);
+    }
     return line;
 }
 
-function processAsset(line: string) {
-    //line = `[Download ${filenameClear}.${fileEnding}](assets/${filenameClear}.${fileEnding})`;
-    return line
+function processAsset(line: string, fileName: string, fileExtension: string) {
+    line = `[Download ${fileName}.${fileExtension}](${config.docusaurusAssetSubfolderName}/${fileName}.${fileExtension})`;
+    return line;
 }
