@@ -36,23 +36,6 @@ export interface SourceFileInfo {
 	language: string;
 }
 
-export interface AssetFileInfo {
-	fileName: string;
-	fileExtension: string;
-	fileNameWithExtension: string;
-    AssetTypeInDocument: AssetType[];
-	sourcePath: string;
-}
-
-export interface AssetType {
-	size?: string;
-	fileType: string;
-	inFile: string[];
-	lightDark: boolean;
-	targetPathStandard?: string;
-	targetPathLight?: string;
-	targetPathDark?: string;
-  }
   
 export interface FilesToProcess {
 	index: number;
@@ -66,3 +49,18 @@ export interface Admonition{
     title: string;
     whitespaces: number;
 }
+
+export interface Asset {
+	fileName: string;
+	originalFileName: string;
+	fileExtension: string;
+	dateModified: string;
+	sourcePathRelative: string;
+	sizes: Size[];
+  }
+  
+  export interface Size {
+	size: string;
+	inDocuments: string[];
+	newName: string[];
+  }
