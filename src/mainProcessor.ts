@@ -33,14 +33,14 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
     // Try to read in the targetJson, this should represent the current status of the files in Docusaurus
     // when there is no file initialize an empty array
-    let targetJson: SourceFileInfo[];
+    let targetJson: SourceFileInfo[] = [];
+
 
     try {
         const jsonData = await fs.promises.readFile(path.join(basePath,'allFilesInfo.json'), 'utf-8');
         targetJson = JSON.parse(jsonData);
     } catch (error) {
         console.error('Error reading file: XXXX', error);
-        targetJson = []; // Provide an empty JSON array as the default value
     }
 
     // Verify if every file exists from target.json
@@ -228,8 +228,8 @@ async function ensureDirectoryExistence(filePath: string) {
 async function compareSource(sourceJson: Partial<SourceFileInfo>[], targetJson: Partial<SourceFileInfo>[]): Promise<FilesToProcess[]> {
     const filesToProcess: FilesToProcess[] = [];
 
-    await fs.promises.writeFile('source.json', JSON.stringify(sourceJson, null, 2));
-    await fs.promises.writeFile('target.json', JSON.stringify(targetJson, null, 2));
+    //await fs.promises.writeFile('source.json', JSON.stringify(sourceJson, null, 2));
+    //await fs.promises.writeFile('target.json', JSON.stringify(targetJson, null, 2));
 
     // Iterate over sourceJson files
     sourceJson.forEach((sourceFile, i) => {
@@ -322,10 +322,10 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
 
     // Construct main path depending on the file type
     const mainPathDict = {
-        'docs': isMainLanguage ? "" : `i18n\\${language}\\docusaurus-plugin-content-docs\\current`,
-        'blog': isMainLanguage ? "" : `i18n\\${language}\\docusaurus-plugin-content-blog\\current`,
-        'blogMulti': isMainLanguage || !mainFolder ? "" : `i18n\\${language}\\docusaurus-plugin-content-blog-${mainFolder}`,
-        'assets': `static\\${config.docusaurusAssetSubfolderName}`,
+        'docs': isMainLanguage ? "" : path.join("i18n", language, "docusaurus-plugin-content-docs", "current"),
+        'blog': isMainLanguage ? "" : path.join("i18n", language, "docusaurus-plugin-content-blog", "current"),
+        'blogMulti': isMainLanguage || !mainFolder ? "" : path.join("i18n", language, `docusaurus-plugin-content-blog-${mainFolder}`),
+        'assets': path.join("static", config.docusaurusAssetSubfolderName),
     };
 
     //@ts-ignore
@@ -336,13 +336,10 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
     }
 
     let finalPathSourceRelative = pathSourceRelative;
-
     if (parentFolder.endsWith('+')) {
-
-        const pathParts = finalPathSourceRelative.split("\\");
+        const pathParts = finalPathSourceRelative.split(path.sep);
 
         pathParts.pop();
-        console.log(pathParts)
 
         if (pathParts.length > 0) {
 
@@ -352,11 +349,10 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
             // Remove '+' from the end of the parent folder
             if (lastPart.endsWith('+')) {
                 lastPart = lastPart.slice(0, -1);
-                console.log(lastPart)
                 pathParts[pathParts.length - 1] = lastPart;  // update the lastpart in the path array
             }
 
-            finalPathSourceRelative = pathParts.join("\\") + fileExtension;
+            finalPathSourceRelative = pathParts.join(path.sep) + fileExtension;
 
             if (config.debug) {
                 logger.info('🔧 Removed Parent Folder: New Path: %s', finalPathSourceRelative);
