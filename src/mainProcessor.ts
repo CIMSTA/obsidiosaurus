@@ -39,7 +39,7 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
         const jsonData = await fs.promises.readFile(path.join(basePath,'allFilesInfo.json'), 'utf-8');
         targetJson = JSON.parse(jsonData);
     } catch (error) {
-        console.error('Error reading file:', error);
+        console.error('Error reading file: XXXX', error);
         targetJson = []; // Provide an empty JSON array as the default value
     }
 
@@ -165,9 +165,16 @@ function getMainfolders(folderPath: string): MainFolder[] {
 
 function searchFilesInFolder(directory: string): string[] {
     let results: string[] = [];
+    let skipFiles = ".DS_Store"
     const files = fs.readdirSync(directory);
 
     files.forEach(file => {
+
+        if (skipFiles.includes(file)) {
+            console.log(`⏭️ Skipped ${file}`)
+            return;
+        }
+
         const filePath = path.join(directory, file);
         const stat = fs.statSync(filePath);
 
@@ -302,6 +309,7 @@ function sanitizeFileName(fileName: string): { fileNameClean: string, fileExtens
 }
 
 function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string): Partial<SourceFileInfo> {
+    console.log(sourceFileInfo)
     const { type, language, pathSourceRelative, mainFolder, parentFolder, fileExtension } = sourceFileInfo;
 
     if (!type || !language || !pathSourceRelative || !parentFolder || !fileExtension || !mainFolder) {
