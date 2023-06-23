@@ -37,8 +37,8 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	//outfile: "../obsidiosaurus/main.js",
-	outfile: "../obsidiosaurus_docs/vault/.obsidian/plugins/obsidiosaurus/main.js",
+	//outfile: "main.js",
+	outfile: "../obsidiosaurus-docs/vault/.obsidian/plugins/obsidiosaurus/main.js",
 });
 
 if (prod) {
