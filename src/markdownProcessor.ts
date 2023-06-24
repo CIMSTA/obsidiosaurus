@@ -175,7 +175,7 @@ function getOrCreateSize(sizes: Size[], size: string, processedFileName: string)
 }
 
 function checkForAssets(line: string, processedFileName: string, assetJson: Asset[]): string {
-    const match = line.match(/!\[(?:\|(?<size>\d+x\d+))?\]\((?<path>.*?)\)/);
+    const match = line.match(/!\[(?:\|(?<size>\d+(x\d+)?))?\]\((?<path>.*?)\)/);
 
     if (match && match.groups) {
         // eslint-disable-next-line prefer-const
