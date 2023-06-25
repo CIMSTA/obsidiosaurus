@@ -75,7 +75,7 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     }
 
     if (config.debug) {
-    logger.info("✅ Obsidiosaurus run successfully");
+        logger.info("✅ Obsidiosaurus run successfully");
     }
     new Notice("✅ Obsidiosaurus run successfully");
 
@@ -121,7 +121,6 @@ async function writeJsonToFile(filePath: string, content: any) {
     return JSON.parse(await fs.promises.readFile(filePath, 'utf-8'));
 }
 
-
 ////////////////////////////////////////////////////////////////
 // FOLDERS
 ////////////////////////////////////////////////////////////////
@@ -130,7 +129,9 @@ function getMainfolders(folderPath: string): MainFolder[] {
     const folders: MainFolder[] = [];
     const absoluteFolderPath = path.resolve(folderPath);
 
-    logger.info('📁 Processing path: %s', absoluteFolderPath);
+    if (config.debug) {
+        logger.info('📁 Processing path: %s', absoluteFolderPath);
+    }
 
     const objects = fs.readdirSync(absoluteFolderPath);
     if (config.debug) {
@@ -169,7 +170,9 @@ function getMainfolders(folderPath: string): MainFolder[] {
         }
     });
 
-    logger.info('📤 Returning folders: %o', folders);
+    if (config.debug) {
+        logger.info('📤 Returning folders: %o', folders);
+    }
     return folders;
 }
 
@@ -181,7 +184,9 @@ function searchFilesInFolder(directory: string): string[] {
     files.forEach(file => {
 
         if (skipFiles.includes(file)) {
-            logger.info(`⏭️ Skipped ${file}`)
+            if (config.debug) {
+                logger.info(`⏭️ Skipped ${file}`)
+            }
             return;
         }
 
@@ -317,10 +322,22 @@ function sanitizeFileName(fileName: string): { fileNameClean: string, fileExtens
     return { fileNameClean: fileNameClean.trim(), fileExtension, language };
 }
 
+/**
+ * Constructs target path for a given source file.
+ *
+ * This function uses the properties of the source file, particularly its type, 
+ * language, and other properties, to construct the path where it should be placed 
+ * in the target directory.
+ *
+ * @param {Partial<SourceFileInfo>} sourceFileInfo - An object that contains information about the source file.
+ * @param {string} basePath - The base path where the files will be placed.
+ * @returns {Partial<SourceFileInfo>} - An object that contains the original information plus the target path.
+ * @throws {Error} - If a required property is missing in the sourceFileInfo object.
+ */
 function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string): Partial<SourceFileInfo> {
-    console.log(sourceFileInfo)
     const { type, language, pathSourceRelative, mainFolder, parentFolder, fileExtension } = sourceFileInfo;
 
+    // Check if all required properties exist
     if (!type || !language || !pathSourceRelative || !parentFolder || !fileExtension || !mainFolder) {
         logger.error('🚨 Required properties missing on sourceFileInfo');
         throw new Error('Missing required properties on sourceFileInfo');
@@ -329,7 +346,6 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
     // Check if main language is used
     const isMainLanguage = language === config.mainLanguage;
 
-    // Construct main path depending on the file type
     const mainPathDict = {
         'docs': isMainLanguage ? "" : path.join("i18n", language, "docusaurus-plugin-content-docs", "current"),
         'blog': isMainLanguage ? "" : path.join("i18n", language, "docusaurus-plugin-content-blog", "current"),
@@ -337,55 +353,44 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
         'assets': path.join("static", config.docusaurusAssetSubfolderName),
     };
 
-    //@ts-ignore
+    // Get the main path from the dictionary
     const mainPath = mainPathDict[type] || "";
 
-    if (config.debug) {
-        logger.info('🔍 File: %s, Type: %s, Main Path: %s', pathSourceRelative, type, mainPath);
-    }
-
+    // Construct final relative source path
     let finalPathSourceRelative = pathSourceRelative;
+ 
     if (parentFolder.endsWith('+')) {
         const pathParts = finalPathSourceRelative.split(path.sep);
-
+        // If parent folder name ends with '+', remove the last part of the path
         pathParts.pop();
 
         if (pathParts.length > 0) {
-
             let lastPart = pathParts[pathParts.length - 1];
-            console.log(lastPart)
 
             // Remove '+' from the end of the parent folder
             if (lastPart.endsWith('+')) {
                 lastPart = lastPart.slice(0, -1);
-                pathParts[pathParts.length - 1] = lastPart;  // update the lastpart in the path array
+                pathParts[pathParts.length - 1] = lastPart;
             }
 
             finalPathSourceRelative = pathParts.join(path.sep) + fileExtension;
-
-            if (config.debug) {
-                logger.info('🔧 Removed Parent Folder: New Path: %s', finalPathSourceRelative);
-            }
         }
     }
 
-    // Remove language from path
+    // Remove the language + seperator from final path
     finalPathSourceRelative = finalPathSourceRelative.replace(`__${language}`, "");
 
-    // Remove .md ending from .yml file
+    // If the file is a .yml.md file, remove the .md part
     if (finalPathSourceRelative.endsWith(".yml.md")) {
         finalPathSourceRelative = finalPathSourceRelative.replace(".yml.md", ".yml");
-        if (config.debug) {
-            logger.info('🔧 Removed .md from .yml file: New Path: %s', finalPathSourceRelative);
-        }
     }
 
+    // Construct target relative and absolute paths
     sourceFileInfo.pathTargetRelative = path.join(mainPath, finalPathSourceRelative);
     sourceFileInfo.pathTargetAbsolute = path.join(basePath, config.docusaurusWebsiteDirectory, sourceFileInfo.pathTargetRelative)
 
     return sourceFileInfo;
 }
-
 /**
  * This asynchronous function compares source and target files to identify files that need to be deleted.
  *
