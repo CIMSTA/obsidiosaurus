@@ -67,6 +67,8 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
         new Notice(`💤 Nothing to process`);
     }
 
+    augmentPathForMacOS();
+
     // Find all assets that need to be processed and perform the conversion
     const assetsToProcess = await getAssetsToProcess(assetJson, websitePath);
     new Notice(`⚙ Processing ${assetsToProcess.length} Assets`);
@@ -132,10 +134,14 @@ function augmentPathForMacOS() {
         if (!process.env.PATH.includes(homebrewPath)) {
             process.env.PATH = homebrewPath + ':' + process.env.PATH;
             if (config.debug) {
-                console.log(`Added Homebrew to Path`);
+                logger.info(`🗺️ Current Obsidian ENV PATH: ${process.env.PATH}`);
             }
         }
     }
+}
+
+if (config.debug) {
+    console.log(process.env.PATH)
 }
 
 ////////////////////////////////////////////////////////////////
@@ -675,6 +681,10 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
                     logger.info(`Failed to resize image and copy from ${originalFilePath} to ${newFilePath}: ${error.message}`);
                 }
             }
+        } else if (["excalidraw", "svg"].includes(asset.fileExtension)){
+            await convertSVG();
+            
+
         } else {
             // Copy the file to the new location
             try {
@@ -692,12 +702,11 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
 }
 }
 
-// Intitalize GraphicksMagic
-const gm = require('gm').subClass({ imageMagick: '7+' });
 
 
 
-augmentPathForMacOS();
+
+
 
 function isGif(filePath) {
     const extension = path.extname(filePath);
@@ -705,11 +714,9 @@ function isGif(filePath) {
 }
 
 async function resizeImage(originalFilePath: string, newFilePath: string, size: string): Promise<void> {
-    if (config.debug) {
-        console.log(process.env.PATH)
-    }
 
-
+    // Intitalize GraphicksMagic
+    const gm = require('gm').subClass({ imageMagick: '7+' });
 
     const widthOriginal: number = await getImageWidth(originalFilePath);
     let width: number;
