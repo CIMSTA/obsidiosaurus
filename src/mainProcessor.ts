@@ -121,6 +121,23 @@ async function writeJsonToFile(filePath: string, content: any) {
     return JSON.parse(await fs.promises.readFile(filePath, 'utf-8'));
 }
 
+/**
+ * Augments the Obsidian PATH environment variable for macOS to include the Homebrew path if it's not already included.
+ */
+function augmentPathForMacOS() {
+    const os = require('os');
+
+    if (os.platform() === 'darwin') {
+        const homebrewPath = '/opt/homebrew/bin';
+        if (!process.env.PATH.includes(homebrewPath)) {
+            process.env.PATH = homebrewPath + ':' + process.env.PATH;
+            if (config.debug) {
+                console.log(`Added Homebrew to Path`);
+            }
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////
 // FOLDERS
 ////////////////////////////////////////////////////////////////
@@ -358,7 +375,7 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
 
     // Construct final relative source path
     let finalPathSourceRelative = pathSourceRelative;
- 
+
     if (parentFolder.endsWith('+')) {
         const pathParts = finalPathSourceRelative.split(path.sep);
         // If parent folder name ends with '+', remove the last part of the path
@@ -638,52 +655,47 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
         for (const newName of size.newName) {
             const newFilePath = path.join(docusaurusAssetFolderPath, newName);
 
-
             // Check if it's an image
             if (["jpg", "png", "webp", "jpeg", "bmp", "gif"].includes(asset.fileExtension)) {
                 try {
-
-                    await resizeImage(originalFilePath, newFilePath, size.size);
-                    if (config.debug) {
-                        logger.info(`Image resized and copied from ${originalFilePath} to ${newFilePath}`);
+                    // If size is standard, there is no resize needed
+                    if (size.size === "standard") {
+                        await fs.copyFileSync(originalFilePath, newFilePath);
+                        if (config.debug) {
+                            logger.info(`Image copied from ${originalFilePath} to ${newFilePath}`);
+                        }
+                    } else {
+                        await resizeImage(originalFilePath, newFilePath, size.size);
+                        if (config.debug) {
+                            logger.info(`Image resized and copied from ${originalFilePath} to ${newFilePath}`);
+                        }
                     }
                 } catch (error) {
-                    if (config.debug) {
-                        logger.info(`Failed to resize image and copy from ${originalFilePath} to ${newFilePath}: ${error.message}`);
-                    }
+                if (config.debug) {
+                    logger.info(`Failed to resize image and copy from ${originalFilePath} to ${newFilePath}: ${error.message}`);
                 }
-            } else {
-                // Copy the file to the new location
-                try {
-                    await copyFile(originalFilePath, newFilePath);
-                    if (config.debug) {
-                        logger.info(`File copied from ${originalFilePath} to ${newFilePath}`);
-                    }
-                } catch (error) {
-                    if (config.debug) {
-                        logger.error(`Failed to copy file from ${originalFilePath} to ${newFilePath}: ${error.message}`);
-                    }
+            }
+        } else {
+            // Copy the file to the new location
+            try {
+                await copyFile(originalFilePath, newFilePath);
+                if (config.debug) {
+                    logger.info(`File copied from ${originalFilePath} to ${newFilePath}`);
+                }
+            } catch (error) {
+                if (config.debug) {
+                    logger.error(`Failed to copy file from ${originalFilePath} to ${newFilePath}: ${error.message}`);
                 }
             }
         }
     }
 }
+}
 
+// Intitalize GraphicksMagic
 const gm = require('gm').subClass({ imageMagick: '7+' });
 
-function augmentPathForMacOS() {
-    const os = require('os');
 
-    if (os.platform() === 'darwin') {
-        const homebrewPath = '/opt/homebrew/bin';
-        if (!process.env.PATH.includes(homebrewPath)) {
-            process.env.PATH = homebrewPath + ':' + process.env.PATH;
-            if (config.debug) {
-                console.log(`Added Homebrew to Path`);
-            }
-        }
-    }
-}
 
 augmentPathForMacOS();
 
@@ -697,12 +709,7 @@ async function resizeImage(originalFilePath: string, newFilePath: string, size: 
         console.log(process.env.PATH)
     }
 
-    // Skip resizing for GIFs when size is "standard"
-    if (size === "standard" && isGif(originalFilePath)) {
-        fs.copyFileSync(originalFilePath, newFilePath);
-        console.log('Copied GIF without resizing.');
-        return;
-    }
+
 
     const widthOriginal: number = await getImageWidth(originalFilePath);
     let width: number;
