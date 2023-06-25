@@ -29,7 +29,7 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
     // Separate assets from the other files
     const allSourceFilesInfo: Partial<SourceFileInfo>[] = allInfo.filter(info => info.type !== 'assets');
-    const allSourceAssetsInfo: Partial<SourceFileInfo>[]  = allInfo.filter(info => info.type === 'assets');
+    const allSourceAssetsInfo: Partial<SourceFileInfo>[] = allInfo.filter(info => info.type === 'assets');
 
     // Try to read in the targetJson, this should represent the current status of the files in Docusaurus
     // when there is no file initialize an empty array
@@ -37,7 +37,7 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
 
     try {
-        const jsonData = await fs.promises.readFile(path.join(basePath,'allFilesInfo.json'), 'utf-8');
+        const jsonData = await fs.promises.readFile(path.join(basePath, 'allFilesInfo.json'), 'utf-8');
         targetJson = JSON.parse(jsonData);
     } catch (error) {
         console.error('Error reading file: XXXX', error);
@@ -57,27 +57,27 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
     // Read in the assetInfo Json File, this contains all infos about currently used images, pdfs,..
     try {
-        assetJson = JSON.parse(await fs.promises.readFile(path.join(basePath,'assetInfo.json'), 'utf-8'));
-      } catch (error) {
+        assetJson = JSON.parse(await fs.promises.readFile(path.join(basePath, 'assetInfo.json'), 'utf-8'));
+    } catch (error) {
         if (error.code === 'ENOENT') {
-          // If file doesn't exist, create it with an empty JSON array
-          await fs.promises.writeFile(path.join(basePath,'assetInfo.json'), '[]');
-          console.log('Created assetInfo.json');
+            // If file doesn't exist, create it with an empty JSON array
+            await fs.promises.writeFile(path.join(basePath, 'assetInfo.json'), '[]');
+            console.log('Created assetInfo.json');
         } else {
-          console.error('Error reading file:', error);
+            console.error('Error reading file:', error);
         }
-      }
-      
+    }
+
     //await processAssetDeletion(filesToDelete, assetJson, allSourceAssetsInfo, websitePath)
     await removeAssetReferences(filesToDelete, assetJson, websitePath);
-    await fs.promises.writeFile(path.join(basePath,'assetJson_.json'), JSON.stringify(assetJson, null, 2));
+    await fs.promises.writeFile(path.join(basePath, 'assetJson_.json'), JSON.stringify(assetJson, null, 2));
 
     // Write files
 
-    await fs.promises.writeFile(path.join(basePath,'allFilesInfo.json'), JSON.stringify(targetJson, null, 2));
-    targetJson = JSON.parse(await fs.promises.readFile(path.join(basePath,'allFilesInfo.json'), 'utf-8'));
+    await fs.promises.writeFile(path.join(basePath, 'allFilesInfo.json'), JSON.stringify(targetJson, null, 2));
+    targetJson = JSON.parse(await fs.promises.readFile(path.join(basePath, 'allFilesInfo.json'), 'utf-8'));
 
-    await fs.promises.writeFile(path.join(basePath,'allSourceAssetsInfo.json'), JSON.stringify(allSourceAssetsInfo, null, 2));
+    await fs.promises.writeFile(path.join(basePath, 'allSourceAssetsInfo.json'), JSON.stringify(allSourceAssetsInfo, null, 2));
 
 
     const filesToProcess = await compareSource(allSourceFilesInfo, targetJson);
@@ -87,6 +87,7 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
         return true;
     }
 
+
     new Notice(`⚙ Processing ${filesToProcess.length} Files`)
 
     // Get the indices of files to process
@@ -95,16 +96,18 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     // Filter allSourceFilesInfo to only include files to process
     const filesToMarkdownProcess = allSourceFilesInfo.filter((_, index) => filesToProcessIndices.includes(index));
 
+    // Start the actual Markdown comparison
     await copyMarkdownFilesToTarget(filesToMarkdownProcess, basePath, targetJson, assetJson);
 
-    await fs.promises.writeFile(path.join(basePath,'allFilesInfo.json'), JSON.stringify(targetJson, null, 2));
+    await fs.promises.writeFile(path.join(basePath, 'allFilesInfo.json'), JSON.stringify(targetJson, null, 2));
 
-    const assetsToProcess = await getAssetsToProcess(assetJson);
+    const assetsToProcess = await getAssetsToProcess(assetJson, websitePath);
 
     new Notice(`⚙ Processing ${assetsToProcess.length} Assets`)
 
-    await copyAssetFilesToTarget(vaultPath, websitePath, assetJson, assetsToProcess)
+    // 
 
+    await copyAssetFilesToTarget(vaultPath, websitePath, assetJson, assetsToProcess)
 
     logger.info("✅ Obsidiosaurus run successfully");
     new Notice("✅ Obsidiosaurus run successfully")
@@ -171,7 +174,7 @@ function searchFilesInFolder(directory: string): string[] {
     files.forEach(file => {
 
         if (skipFiles.includes(file)) {
-            console.log(`⏭️ Skipped ${file}`)
+            logger.info(`⏭️ Skipped ${file}`)
             return;
         }
 
@@ -203,7 +206,9 @@ async function deleteParentDirectories(filepath: string) {
     while (dirPath !== path.dirname(dirPath)) { // while dirPath has a parent directory
         try {
             await fs.promises.rmdir(dirPath);
-            logger.info(`🧨 Successfully deleted directory ${dirPath}`);
+            if (config.debug) {
+                logger.info(`🧨 Successfully deleted directory ${dirPath}`);
+            }
         } catch (error) {
             // Ignore the error if the directory is not empty
             if (error.code !== 'ENOTEMPTY' && error.code !== 'EEXIST' && error.code !== 'EPERM') {
@@ -260,7 +265,7 @@ function getSourceFileInfo(basePath: string, folder: MainFolder, filePath: strin
 
     const { fileNameClean, fileExtension, language } = sanitizeFileName(fileName);
 
-    const pathSourceRelative = path.relative(vaultPath, filePath); // basePath is defined in outer scope.
+    const pathSourceRelative = path.relative(vaultPath, filePath);
 
     let sourceFileInfo: Partial<SourceFileInfo> = {
         fileName,
@@ -273,7 +278,7 @@ function getSourceFileInfo(basePath: string, folder: MainFolder, filePath: strin
         pathSourceRelative,
         dateModified: stats.mtime,
         size: stats.size,
-        type: folder.type // Assuming type is defined in the MainFolder interface.
+        type: folder.type
     };
 
     sourceFileInfo = getTargetPath(sourceFileInfo, basePath)
@@ -436,7 +441,9 @@ async function deleteFiles(filesToDelete: FilesToProcess[], targetJson: SourceFi
 
         try {
             await fs.promises.unlink(path.join(basePath, targetFile.pathTargetRelative));
-            logger.info(`✅ Successfully deleted file %s`, targetFile.pathTargetRelative);
+            if (config.debug) {
+                logger.info(`✅ Successfully deleted file %s`, targetFile.pathTargetRelative);
+            }
             await deleteParentDirectories(path.join(basePath, targetFile.pathTargetRelative));
 
             // Remove the deleted file from targetJson immediately after successful deletion
@@ -448,7 +455,9 @@ async function deleteFiles(filesToDelete: FilesToProcess[], targetJson: SourceFi
                 errors.push(error);
                 continue; // If deletion failed for other reasons, we keep the file in targetJson.
             }
-            logger.info(`🗑️ File %s was not found, considered as deleted`, targetFile.pathTargetRelative);
+            if (config.debug) {
+                logger.info(`🗑️ File %s was not found, considered as deleted`, targetFile.pathTargetRelative);
+            }
             targetJson.splice(fileToDelete.index, 1);
         }
     }
@@ -521,7 +530,7 @@ async function copyMarkdownFilesToTarget(files: Partial<SourceFileInfo>[], baseP
     // Add results to targetJson
     targetJson.push(...results);
 
-    await fs.promises.writeFile(path.join(basePath,'assetInfo.json'), JSON.stringify(assetJson, null, 2));
+    await fs.promises.writeFile(path.join(basePath, 'assetInfo.json'), JSON.stringify(assetJson, null, 2));
 }
 
 ////////////////////////////////////////////////////////////////
@@ -549,25 +558,30 @@ async function removeAssetReferences(filesToDelete: FilesToProcess[], assetJson:
                 if (docIndex !== -1) {
                     // Remove the filePath from inDocuments array
                     size.inDocuments.splice(docIndex, 1);
-                    logger.info(`🗑 Removed filePath from inDocuments: ${fileToDelete.pathKey}`);
-
+                    if (config.debug) {
+                        logger.info(`🗑 Removed filePath from inDocuments: ${fileToDelete.pathKey}`);
+                    }
                     // If inDocuments array is empty, remove the size entry
                     if (size.inDocuments.length === 0) {
                         const assetToRemove = size.newName
                         await removeAssetFromTarget(assetToRemove, config.docusaurusAssetSubfolderName, websitePath)
 
                         asset.sizes.splice(sizeIndex, 1);
-                        logger.info(`🔥 Removed size from sizes: ${size.size}`);
+                        if (config.debug) {
+                            logger.info(`🔥 Removed size from sizes: ${size.size}`);
+                        }
                     }
 
-                    
+
                 }
             }
 
             // If sizes array is empty, remove the asset entry
             if (asset.sizes.length === 0) {
                 assetJson.splice(assetIndex, 1);
-                logger.info(`💥 Removed asset from assetJson: ${asset.fileName}`);
+                if (config.debug) {
+                    logger.info(`💥 Removed asset from assetJson: ${asset.fileName}`);
+                }
             }
         }
     }
@@ -577,12 +591,16 @@ async function removeAssetReferences(filesToDelete: FilesToProcess[], assetJson:
 
 async function removeAssetFromTarget(assetToRemove: string[], docusaurusAssetSubfolderName: string, websitePath: string): Promise<void> {
     for (const asset of assetToRemove) {
-        const assetPath = path.join(websitePath, docusaurusAssetSubfolderName, asset);      
+        const assetPath = path.join(websitePath, "static", docusaurusAssetSubfolderName, asset);
         try {
             await fs.promises.unlink(assetPath);
-            logger.info(`🗑 Removed asset: ${assetPath}`);
+            if (config.debug) {
+                logger.info(`🗑 Removed asset: ${assetPath}`);
+            }
         } catch (error) {
-            logger.error(`❌ Error removing asset: ${assetPath}`, error);
+            if (config.debug) {
+                logger.error(`❌ Error removing asset: ${assetPath}`, error);
+            }
         }
     }
 }
@@ -590,8 +608,8 @@ async function removeAssetFromTarget(assetToRemove: string[], docusaurusAssetSub
 const copyFile = util.promisify(fs.copyFile);
 const mkdir = util.promisify(fs.mkdir);
 
-async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string, assetJson: Asset[], assetsToProcess: {assetIndex: number, sizeIndex: number, path: string}[] ): Promise<void> {
-    
+async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string, assetJson: Asset[], assetsToProcess: { assetIndex: number, sizeIndex: number, path: string }[]): Promise<void> {
+
     const docusaurusAssetFolderPath = path.join(websitePath, "static", config.docusaurusAssetSubfolderName)
     await mkdir(docusaurusAssetFolderPath, { recursive: true });
 
@@ -605,24 +623,32 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
 
         for (const newName of size.newName) {
             const newFilePath = path.join(docusaurusAssetFolderPath, newName);
-            
+
 
             // Check if it's an image
             if (["jpg", "png", "webp", "jpeg", "bmp", "gif"].includes(asset.fileExtension)) {
                 try {
 
                     await resizeImage(originalFilePath, newFilePath, size.size);
-                    console.log(`Image resized and copied from ${originalFilePath} to ${newFilePath}`);
+                    if (config.debug) {
+                        logger.info(`Image resized and copied from ${originalFilePath} to ${newFilePath}`);
+                    }
                 } catch (error) {
-                    console.error(`Failed to resize image and copy from ${originalFilePath} to ${newFilePath}: ${error.message}`);
+                    if (config.debug) {
+                        logger.info(`Failed to resize image and copy from ${originalFilePath} to ${newFilePath}: ${error.message}`);
+                    }
                 }
             } else {
                 // Copy the file to the new location
                 try {
                     await copyFile(originalFilePath, newFilePath);
-                    console.log(`File copied from ${originalFilePath} to ${newFilePath}`);
+                    if (config.debug) {
+                        logger.info(`File copied from ${originalFilePath} to ${newFilePath}`);
+                    }
                 } catch (error) {
-                    console.error(`Failed to copy file from ${originalFilePath} to ${newFilePath}: ${error.message}`);
+                    if (config.debug) {
+                        logger.error(`Failed to copy file from ${originalFilePath} to ${newFilePath}: ${error.message}`);
+                    }
                 }
             }
         }
@@ -631,30 +657,85 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
 
 const gm = require('gm').subClass({ imageMagick: '7+' });
 
-async function resizeImage(originalFilePath: string, newFilePath: string, size: string): Promise<void> {
+function augmentPathForMacOS() {
+    const os = require('os');
 
+    if (os.platform() === 'darwin') {
+        const homebrewPath = '/opt/homebrew/bin';
+        if (!process.env.PATH.includes(homebrewPath)) {
+            process.env.PATH = homebrewPath + ':' + process.env.PATH;
+            if (config.debug) {
+                console.log(`Added Homebrew to Path`);
+            }
+        }
+    }
+}
+
+augmentPathForMacOS();
+
+function isGif(filePath) {
+    const extension = path.extname(filePath);
+    return extension === '.gif';
+}
+
+async function resizeImage(originalFilePath: string, newFilePath: string, size: string): Promise<void> {
+    if (config.debug) {
+        console.log(process.env.PATH)
+    }
+
+    // Skip resizing for GIFs when size is "standard"
+    if (size === "standard" && isGif(originalFilePath)) {
+        fs.copyFileSync(originalFilePath, newFilePath);
+        console.log('Copied GIF without resizing.');
+        return;
+    }
+
+    const widthOriginal: number = await getImageWidth(originalFilePath);
     let width: number;
     let height: string | number;
+    let auto = true;
 
     if (size === "standard") {
-        width = config.convertedImageMaxWidth;
+        width = Math.min(widthOriginal, parseInt(config.convertedImageMaxWidth))
         height = '';  // auto height
     } else {
         const dimensions = size.split("x");
         width = parseInt(dimensions[0]);
         height = dimensions.length > 1 ? parseInt(dimensions[1]) : '';
+        if (height) {
+            auto = false;
+        }
     }
 
-    gm(originalFilePath)
-    .resize(width, height, '!')
-    .noProfile()
-    .write(newFilePath, function (err) {
+    let imageProcess = gm(originalFilePath)
+        .coalesce()
+
+    if (auto) {
+        imageProcess = imageProcess.resize(width, height);
+    } else {
+        imageProcess = imageProcess.resize(width, height, '!');
+    }
+
+    imageProcess.write(newFilePath, function (err) {
         if (err) console.log(err);
         if (!err) console.log('done');
-      });
+    });
 }
 
-async function getAssetsToProcess(assetJson: Asset[]): Promise<{assetIndex: number, sizeIndex: number, path: string}[]> {
+function getImageWidth(imagePath): Promise<number> {
+    return new Promise((resolve, reject) => {
+        gm(imagePath).size((err, size) => {
+            if (err) {
+                console.log('Error getting image width: ', err);
+                reject(err);
+            } else {
+                resolve(size.width);
+            }
+        });
+    });
+}
+
+async function getAssetsToProcess(assetJson: Asset[], websitePath: string): Promise<{ assetIndex: number, sizeIndex: number, path: string }[]> {
     const documents = [];
 
     // Loop through all assets
@@ -663,21 +744,23 @@ async function getAssetsToProcess(assetJson: Asset[]): Promise<{assetIndex: numb
         for (const [sizeIndex, size] of asset.sizes.entries()) {
             // Add all documents for each size to the array, along with the asset and size index
             for (const name of size.newName) {
-                documents.push({assetIndex, sizeIndex, path: name});
+                documents.push({ assetIndex, sizeIndex, path: name });
             }
         }
     }
 
     // Check if each document exists, if it does remove it from the array
     const assetsToProcess = documents.filter(document => {
-        
-        if (fs.existsSync(document.path)) {
-            return false; // Exists, so remove it from the array
+        console.log(document.path)
+        const fileExists = fs.existsSync(path.join(websitePath, "static", config.docusaurusAssetSubfolderName, document.path));
+
+        if (!fileExists) {
+            console.log(`File ${document.path} does not exist.`);
         }
-        return true; // Doesn't exist, so keep it in the array
+
+        return !fileExists; // Only keep it in the array if the file does not exist
     });
 
-    
-
+    console.log(`🙈 ${assetsToProcess}`)
     return assetsToProcess;
 }
