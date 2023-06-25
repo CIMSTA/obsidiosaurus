@@ -14,7 +14,10 @@ import util from 'util';
 
 
 export default async function obsidiosaurusProcess(basePath: string): Promise<boolean> {
+    // Docusaurus path
     const websitePath = path.join(basePath, "website")
+    // Obsidian Vault path
+    
     const vaultPath = path.join(basePath, "vault")
     // Get the main folders of the vault e.g. docs, assets, ..
     const mainFolders = getMainfolders(vaultPath);
@@ -54,9 +57,9 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     // Delete the files with the index array from Docusaurus
     await deleteFiles(filesToDelete, targetJson, basePath);
     let assetJson = [];
-
-    // Read in the assetInfo Json File, this contains all infos about currently used images, pdfs,..
+    
     try {
+        // Read in the assetInfo Json File, this contains all infos about currently used images, pdfs,..
         assetJson = JSON.parse(await fs.promises.readFile(path.join(basePath, 'assetInfo.json'), 'utf-8'));
     } catch (error) {
         if (error.code === 'ENOENT') {
@@ -96,17 +99,17 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     // Filter allSourceFilesInfo to only include files to process
     const filesToMarkdownProcess = allSourceFilesInfo.filter((_, index) => filesToProcessIndices.includes(index));
 
-    // Start the actual Markdown comparison
+    // Start the actual Markdown conversion and copy to Docusaurus folder
     await copyMarkdownFilesToTarget(filesToMarkdownProcess, basePath, targetJson, assetJson);
 
+    // Write new allFilesInfo -> Used to compare for next run
     await fs.promises.writeFile(path.join(basePath, 'allFilesInfo.json'), JSON.stringify(targetJson, null, 2));
 
+    // Find all assets what have to be processed
     const assetsToProcess = await getAssetsToProcess(assetJson, websitePath);
-
     new Notice(`⚙ Processing ${assetsToProcess.length} Assets`)
 
-    // 
-
+    // Actual Assets conversion and copy to Docusaurus Folder
     await copyAssetFilesToTarget(vaultPath, websitePath, assetJson, assetsToProcess)
 
     logger.info("✅ Obsidiosaurus run successfully");
@@ -232,9 +235,6 @@ async function ensureDirectoryExistence(filePath: string) {
 
 async function compareSource(sourceJson: Partial<SourceFileInfo>[], targetJson: Partial<SourceFileInfo>[]): Promise<FilesToProcess[]> {
     const filesToProcess: FilesToProcess[] = [];
-
-    //await fs.promises.writeFile('source.json', JSON.stringify(sourceJson, null, 2));
-    //await fs.promises.writeFile('target.json', JSON.stringify(targetJson, null, 2));
 
     // Iterate over sourceJson files
     sourceJson.forEach((sourceFile, i) => {
@@ -387,13 +387,18 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
  *
  * @param {Partial<SourceFileInfo>[]} allSourceFilesInfo - Array of source files information. Each object containing details about a source file
  * @param {SourceFileInfo[]} targetJson - Array of target files information. Each element is an object containing details about a file from the target.
- * @return {Promise<FilesToProcess[]>} - A promise that resolves with an array of objects containing indices of files to delete and the reasons for their deletion. Each object has two properties: 'index' and 'reason'.
+ * @return {Promise<FilesToProcess[]>} - A promise that resolves with an array of objects containing indices of files to delete and the reasons for 
+ * their deletion. Each object has two properties: 'index' and 'reason'.
  *
  * @async
  *
- * This function iterates over each file in the 'targetJson' array and attempts to find a matching file in the 'allSourceFilesInfo' array based on their relative paths. If no matching source file is found, it implies that the target file should be deleted, and it is added to the 'filesToDelete' array with the reason "it does not exist in sourceJson".
+ * 1) This function iterates over each file in the 'targetJson' array and attempts to find a matching file in the 'allSourceFilesInfo' array based on 
+ * their relative paths. If no matching source file is found, it implies that the target file should be deleted, and it is added to the 'filesToDelete' 
+ * array with the reason "it does not exist in sourceJson".
  * 
- * If a matching source file is found, their modification dates are compared. If the source file has a more recent modification date than the target file, it implies that the target file should be updated. As a part of the update process, the older target file needs to be deleted first, so it is added to the 'filesToDelete' array with the reason "its last modification date is older than the date in sourceJson".
+ * 2) If a matching source file is found, their modification dates are compared. If the source file has a more recent modification date than the target file, 
+ * it implies that the target file should be updated. As a part of the update process, the older target file needs to be deleted first, 
+ * so it is added to the 'filesToDelete' array with the reason "its last modification date is older than the date in sourceJson".
  * The function returns a promise that resolves with the 'filesToDelete' array.
  */
 async function getFilesToDelete(allSourceFilesInfo: Partial<SourceFileInfo>[], targetJson: SourceFileInfo[]): Promise<FilesToProcess[]> {
