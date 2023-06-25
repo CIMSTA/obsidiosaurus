@@ -6,27 +6,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import util from 'util';
 
-// Function to initialize or read JSON file
-async function initializeJsonFile(filePath: string, defaultContent: string = '[]') {
-    let jsonContent = [];
-    try {
-        jsonContent = JSON.parse(await fs.promises.readFile(filePath, 'utf-8'));
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            await fs.promises.writeFile(filePath, defaultContent);
-            console.log(`Created ${filePath}`);
-        } else {
-            console.error(`Error reading file: ${filePath}`, error);
-        }
-    }
-    return jsonContent;
-}
-
-// Function to write JSON to file
-async function writeJsonToFile(filePath: string, content: any) {
-    await fs.promises.writeFile(filePath, JSON.stringify(content, null, 2));
-    return JSON.parse(await fs.promises.readFile(filePath, 'utf-8'));
-}
+////////////////////////////////////////////////////////////////
+// MAIN
+////////////////////////////////////////////////////////////////
 
 export default async function obsidiosaurusProcess(basePath: string): Promise<boolean> {
     // Docusaurus and Obsidian Vault paths
@@ -99,6 +81,46 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
     return true;
 }
+´
+////////////////////////////////////////////////////////////////
+// UTILS
+////////////////////////////////////////////////////////////////
+
+/**
+ * Initializes a JSON file with default content if the file does not exist.
+ * Reads the file content and returns it as JSON if the file exists.
+ * 
+ * @param {string} filePath - The path to the JSON file.
+ * @param {string} defaultContent - The default content to initialize the file with.
+ * @returns {Promise<Array>} A promise that resolves with the content of the JSON file as an array.
+ */
+async function initializeJsonFile(filePath: string, defaultContent: string = '[]') {
+    let jsonContent = [];
+    try {
+        jsonContent = JSON.parse(await fs.promises.readFile(filePath, 'utf-8'));
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            await fs.promises.writeFile(filePath, defaultContent);
+            console.log(`Created ${filePath}`);
+        } else {
+            console.error(`Error reading file: ${filePath}`, error);
+        }
+    }
+    return jsonContent;
+}
+
+/**
+ * Writes JSON content to a file and then reads the file content and returns it as JSON.
+ *
+ * @param {string} filePath - The path to the JSON file.
+ * @param {any} content - The content to be written to the file.
+ * @returns {Promise<any>} A promise that resolves with the content of the JSON file.
+ */
+async function writeJsonToFile(filePath: string, content: any) {
+    await fs.promises.writeFile(filePath, JSON.stringify(content, null, 2));
+    return JSON.parse(await fs.promises.readFile(filePath, 'utf-8'));
+}
+
 
 ////////////////////////////////////////////////////////////////
 // FOLDERS
