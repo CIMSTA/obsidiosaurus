@@ -1,119 +1,101 @@
 import { MainFolder, SourceFileInfo, FilesToProcess, Asset } from "./types";
 import processMarkdown from "./markdownProcessor";
 import { Notice } from 'obsidian';
-import { logger } from 'main';
-// When you use export default in a module, that module becomes an object and what you're exporting becomes a property of that object.
-// import { logger } from 'main';
-// instead of 
-// import logger from 'main';
+import { logger, config } from 'main';
 import * as fs from 'fs';
 import * as path from 'path';
-import { config } from "main";
 import util from 'util';
 
+// Function to initialize or read JSON file
+async function initializeJsonFile(filePath: string, defaultContent: string = '[]') {
+    let jsonContent = [];
+    try {
+        jsonContent = JSON.parse(await fs.promises.readFile(filePath, 'utf-8'));
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            await fs.promises.writeFile(filePath, defaultContent);
+            console.log(`Created ${filePath}`);
+        } else {
+            console.error(`Error reading file: ${filePath}`, error);
+        }
+    }
+    return jsonContent;
+}
 
+// Function to write JSON to file
+async function writeJsonToFile(filePath: string, content: any) {
+    await fs.promises.writeFile(filePath, JSON.stringify(content, null, 2));
+    return JSON.parse(await fs.promises.readFile(filePath, 'utf-8'));
+}
 
 export default async function obsidiosaurusProcess(basePath: string): Promise<boolean> {
-    // Docusaurus path
+    // Docusaurus and Obsidian Vault paths
     const websitePath = path.join(basePath, "website")
-    // Obsidian Vault path
-    
     const vaultPath = path.join(basePath, "vault")
+
     // Get the main folders of the vault e.g. docs, assets, ..
     const mainFolders = getMainfolders(vaultPath);
     mainFolders.forEach(folder => processSingleFolder(folder, vaultPath));
 
+    // Log folder structure when in debug mode
     if (config.debug) {
         logger.info('📁 Folder structure with Files: %s', JSON.stringify(mainFolders));
     }
 
-    // Get all the file including the necessary infos from the mainfolders
+    // Get all the file info from the main folders and separate assets from other files
     const allInfo = mainFolders.flatMap(folder => folder.files.map(file => getSourceFileInfo(basePath, folder, file, vaultPath)));
-
-    // Separate assets from the other files
     const allSourceFilesInfo: Partial<SourceFileInfo>[] = allInfo.filter(info => info.type !== 'assets');
     const allSourceAssetsInfo: Partial<SourceFileInfo>[] = allInfo.filter(info => info.type === 'assets');
 
-    // Try to read in the targetJson, this should represent the current status of the files in Docusaurus
-    // when there is no file initialize an empty array
-    let targetJson: SourceFileInfo[] = [];
+    // Initialize or read the targetJson and assetJson
+    let targetJson: SourceFileInfo[] = await initializeJsonFile(path.join(basePath, 'allFilesInfo.json'));
+    let assetJson = await initializeJsonFile(path.join(basePath, 'assetInfo.json'));
 
-
-    try {
-        const jsonData = await fs.promises.readFile(path.join(basePath, 'allFilesInfo.json'), 'utf-8');
-        targetJson = JSON.parse(jsonData);
-    } catch (error) {
-        console.error('Error reading file: XXXX', error);
-    }
-
-    // Verify if every file exists from target.json
-    // When not remove it from targetJson
+    // Verify existence of files in target.json and remove if not present
     targetJson = await checkFilesExistence(targetJson)
 
-    // Check if dateModified of Source is newer or the file doesnt exist anymore in Vault
-    // Get an array with indexes to delete from back
+    // Check if source files are newer or missing in vault and prepare for deletion
     const filesToDelete = await getFilesToDelete(allSourceFilesInfo, targetJson);
 
-    // Delete the files with the index array from Docusaurus
+    // Process deletion of files and assets
     await deleteFiles(filesToDelete, targetJson, basePath);
-    let assetJson = [];
-    
-    try {
-        // Read in the assetInfo Json File, this contains all infos about currently used images, pdfs,..
-        assetJson = JSON.parse(await fs.promises.readFile(path.join(basePath, 'assetInfo.json'), 'utf-8'));
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            // If file doesn't exist, create it with an empty JSON array
-            await fs.promises.writeFile(path.join(basePath, 'assetInfo.json'), '[]');
-            console.log('Created assetInfo.json');
-        } else {
-            console.error('Error reading file:', error);
-        }
-    }
-
-    //await processAssetDeletion(filesToDelete, assetJson, allSourceAssetsInfo, websitePath)
     await removeAssetReferences(filesToDelete, assetJson, websitePath);
-    await fs.promises.writeFile(path.join(basePath, 'assetJson_.json'), JSON.stringify(assetJson, null, 2));
 
-    // Write files
+    // Write files and assets info to their respective JSON files
+    targetJson = await writeJsonToFile(path.join(basePath, 'allFilesInfo.json'), targetJson);
+    await writeJsonToFile(path.join(basePath, 'allSourceAssetsInfo.json'), allSourceAssetsInfo);
 
-    await fs.promises.writeFile(path.join(basePath, 'allFilesInfo.json'), JSON.stringify(targetJson, null, 2));
-    targetJson = JSON.parse(await fs.promises.readFile(path.join(basePath, 'allFilesInfo.json'), 'utf-8'));
-
-    await fs.promises.writeFile(path.join(basePath, 'allSourceAssetsInfo.json'), JSON.stringify(allSourceAssetsInfo, null, 2));
-
-
+    // Compare source and target files to determine which ones to process
     const filesToProcess = await compareSource(allSourceFilesInfo, targetJson);
 
-    if (filesToProcess.length == 0) {
-        new Notice(`💤 Nothing to process`)
-        return true;
+    // Process markdown conversion if there are files to process
+    if (filesToProcess.length > 0) {
+        new Notice(`⚙ Processing ${filesToProcess.length} Files`);
+
+        // Get the indices of files to process and filter them from source files
+        const filesToProcessIndices = filesToProcess.map(file => file.index);
+        const filesToMarkdownProcess = allSourceFilesInfo.filter((_, index) => filesToProcessIndices.includes(index));
+
+        // Start the actual Markdown conversion and copy to Docusaurus folder
+        await copyMarkdownFilesToTarget(filesToMarkdownProcess, basePath, targetJson, assetJson);
+
+        // Write new allFilesInfo -> Used to compare for next run
+        await writeJsonToFile(path.join(basePath, 'allFilesInfo.json'), targetJson);
+    } else {
+        new Notice(`💤 Nothing to process`);
     }
 
-
-    new Notice(`⚙ Processing ${filesToProcess.length} Files`)
-
-    // Get the indices of files to process
-    const filesToProcessIndices = filesToProcess.map(file => file.index);
-
-    // Filter allSourceFilesInfo to only include files to process
-    const filesToMarkdownProcess = allSourceFilesInfo.filter((_, index) => filesToProcessIndices.includes(index));
-
-    // Start the actual Markdown conversion and copy to Docusaurus folder
-    await copyMarkdownFilesToTarget(filesToMarkdownProcess, basePath, targetJson, assetJson);
-
-    // Write new allFilesInfo -> Used to compare for next run
-    await fs.promises.writeFile(path.join(basePath, 'allFilesInfo.json'), JSON.stringify(targetJson, null, 2));
-
-    // Find all assets what have to be processed
+    // Find all assets that need to be processed and perform the conversion
     const assetsToProcess = await getAssetsToProcess(assetJson, websitePath);
-    new Notice(`⚙ Processing ${assetsToProcess.length} Assets`)
+    new Notice(`⚙ Processing ${assetsToProcess.length} Assets`);
+    if (assetsToProcess.length > 0) {
+        await copyAssetFilesToTarget(vaultPath, websitePath, assetJson, assetsToProcess);
+    }
 
-    // Actual Assets conversion and copy to Docusaurus Folder
-    await copyAssetFilesToTarget(vaultPath, websitePath, assetJson, assetsToProcess)
-
+    if (config.debug) {
     logger.info("✅ Obsidiosaurus run successfully");
-    new Notice("✅ Obsidiosaurus run successfully")
+    }
+    new Notice("✅ Obsidiosaurus run successfully");
 
     return true;
 }
