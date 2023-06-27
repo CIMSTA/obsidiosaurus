@@ -4,7 +4,6 @@ export interface Config {
 	obsidianAssetSubfolderName: string,
 	docusaurusAssetSubfolderName: string,
 	mainLanguage: string,
-	secondaryLanguages: string,
 	convertedImageType: string,
 	convertedImageMaxWidth: string,
 	debug: true,
