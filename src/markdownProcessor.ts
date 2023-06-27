@@ -252,12 +252,6 @@ function processImage(line: string, fileName: string, fileExtension: string, siz
         if (fileExtension === "excalidraw") {
             const darkPath = newPath.replace('.light.svg#light', '.dark.svg#dark');
             line += `\n![${fileName}](${darkPath})`;
-
-            const darkName = darkPath.split("/").pop()?.split("#")[0];
-            // Only add darkName if it doesn't already exist in sizeObject.newName
-            if (darkName && !sizeObject.newName.includes(darkName)) {
-                sizeObject.newName.push(darkName);
-            }
         }
     } else {
         line = `![${fileName}](${newPath})`;

@@ -655,8 +655,8 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
 
     const docusaurusAssetFolderPath = path.join(websitePath, "static", config.docusaurusAssetSubfolderName)
     await mkdir(docusaurusAssetFolderPath, { recursive: true });
-
     for (const assetToProcess of assetsToProcess) {
+
         // Use the indexes to find the original asset and size
         const asset = assetJson[assetToProcess.assetIndex];
         const size = asset.sizes[assetToProcess.sizeIndex];
@@ -668,8 +668,7 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
         for (const newName of size.newName) {
             const newFilePath = path.join(docusaurusAssetFolderPath, newName);
 
-            console.log("asset.fileExtension")
-            console.log(asset.fileExtension)
+            console.log(newName)
 
             // Check if it's an image
             if (["jpg", "png", "webp", "jpeg", "bmp", "gif"].includes(asset.fileExtension)) {
@@ -692,9 +691,9 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
                     }
                 }
             } else if (asset.fileExtension == "svg") {
-                await convertSVG(originalFilePath, newFilePath);
+                await copySVG(originalFilePath, newFilePath);
             } else if (["excalidraw"].includes(asset.fileExtension)) {
-                await convertExcalidraw(originalFilePath, newFilePath, size.size);
+                await copyExcalidraw(originalFilePath, newFilePath);
             } else {
                 // Copy the file to the new location
                 try {
@@ -712,12 +711,22 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
     }
 }
 
-
-async function convertSVG(originalFilePath: string, newFilePath: string) {
+async function copySVG(originalFilePath: string, newFilePath: string) {
     await copyFile(originalFilePath, newFilePath);
 }
 
+async function copyExcalidraw(originalFilePath: string, newFilePath: string) {
+    console.log(newFilePath)
+    const filePath = originalFilePath.replace(".md", "");
+    const newDarkFilePath = newFilePath.replace (".light", ".dark")
+    const darkFilePath = filePath + ".dark.svg";
+    await copyFile(darkFilePath, newDarkFilePath);
 
+
+    const lightFilePath = filePath + ".light.svg";
+    await copyFile(lightFilePath, newFilePath);
+
+}
 
 // Intitalize GraphicksMagic
 const gm = require('gm').subClass({ imageMagick: '7+' });
@@ -794,7 +803,7 @@ async function getAssetsToProcess(assetJson: Asset[], websitePath: string): Prom
         return !fileExists; // Only keep it in the array if the file does not exist
     });
 
-    console.log(`🙈 ${assetsToProcess}`)
+    console.log(`🙈 ${Object.entries(assetsToProcess)}`)
     return assetsToProcess;
 }
 
