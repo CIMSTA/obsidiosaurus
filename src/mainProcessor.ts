@@ -614,8 +614,6 @@ async function removeAssetReferences(filesToDelete: FilesToProcess[], assetJson:
                             logger.info(`🔥 Removed size from sizes: ${size.size}`);
                         }
                     }
-
-
                 }
             }
 
@@ -673,8 +671,8 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
             // Check if it's an image
             if (["jpg", "png", "webp", "jpeg", "bmp", "gif"].includes(asset.fileExtension)) {
                 try {
-                    // If size is standard, there is no resize needed
-                    if (size.size === "standard") {
+                    // If size is standard, there is no resize needed for gifs, just increase file size
+                    if (size.size === "standard" && asset.fileExtension === "gif") {
                         await fs.copyFileSync(originalFilePath, newFilePath);
                         if (config.debug) {
                             logger.info(`Image copied from ${originalFilePath} to ${newFilePath}`);
@@ -739,6 +737,9 @@ async function resizeImage(originalFilePath: string, newFilePath: string, size: 
 
     if (size === "standard") {
         width = Math.min(widthOriginal, parseInt(config.convertedImageMaxWidth))
+        console.log("🌳")
+        console.log(width)
+        console.log(config.convertedImageMaxWidth)
         height = '';  // auto height
     } else {
         const dimensions = size.split("x");
@@ -799,11 +800,8 @@ async function getAssetsToProcess(assetJson: Asset[], websitePath: string): Prom
         if (!fileExists) {
             console.log(`File ${document.path} does not exist.`);
         }
-
         return !fileExists; // Only keep it in the array if the file does not exist
     });
-
-    console.log(`🙈 ${Object.entries(assetsToProcess)}`)
     return assetsToProcess;
 }
 
