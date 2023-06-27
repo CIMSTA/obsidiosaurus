@@ -12,9 +12,8 @@ export const config: Config = {
 	obsidianAssetSubfolderName: "assets",
 	docusaurusAssetSubfolderName: "assets",
 	mainLanguage: "en",
-	secondaryLanguages: "de, fr",
 	convertedImageType: "webp",
-	convertedImageMaxWidth: "2500",
+	convertedImageMaxWidth: "1000",
 	debug: true
 }
 export default class Obsidisaurus extends Plugin {
@@ -130,9 +129,7 @@ class SettingTab extends PluginSettingTab {
 			.setDesc('Format in which to convert all images')
 			.addDropdown(dropdown => dropdown
 				.addOptions({
-					'jpg': 'JPG',
 					'webp': 'WebP',
-					'png': 'PNG'
 				})
 				.setValue(this.plugin.settings.convertedImageType)
 				.onChange(async (value) => {
@@ -143,7 +140,7 @@ class SettingTab extends PluginSettingTab {
 			.setName('Image Width')
 			.setDesc('Set the max width for the images in [px]')
 			.addText(number => number
-				.setPlaceholder('Enter number')
+				.setPlaceholder('2500')
 				.setValue(this.plugin.settings.convertedImageMaxWidth)
 				.onChange(async (value) => {
 					this.plugin.settings.convertedImageMaxWidth = value;
@@ -162,16 +159,7 @@ class SettingTab extends PluginSettingTab {
 					this.plugin.settings.mainLanguage = value;
 					await this.plugin.saveSettings();
 				}));
-		new Setting(containerEl)
-			.setName('Docusaurus Asset Folder')
-			.setDesc('Name of Docusaurus Asset Folder')
-			.addText(text => text
-				.setPlaceholder('Enter language codes e.g. "fr,de,.."')
-				.setValue(this.plugin.settings.secondaryLanguages)
-				.onChange(async (value) => {
-					this.plugin.settings.secondaryLanguages = value;
-					await this.plugin.saveSettings();
-				}));
+
 
 	}
 }
