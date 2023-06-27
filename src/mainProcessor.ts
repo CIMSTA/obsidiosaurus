@@ -83,7 +83,7 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
 
     return true;
 }
-´
+
 ////////////////////////////////////////////////////////////////
 // UTILS
 ////////////////////////////////////////////////////////////////
@@ -129,19 +129,25 @@ async function writeJsonToFile(filePath: string, content: any) {
 function augmentPathForMacOS() {
     const os = require('os');
 
+    if (config.debug) {
+        logger.info(`🗺️ Current Obsidian ENV PATH: ${process.env.PATH}`);
+    }
+
     if (os.platform() === 'darwin') {
         const homebrewPath = '/opt/homebrew/bin';
         if (!process.env.PATH.includes(homebrewPath)) {
             process.env.PATH = homebrewPath + ':' + process.env.PATH;
             if (config.debug) {
-                logger.info(`🗺️ Current Obsidian ENV PATH: ${process.env.PATH}`);
+                logger.info(`🗺️ New ENV PATH: ${process.env.PATH}`);
             }
         }
     }
+
 }
 
-if (config.debug) {
-    console.log(process.env.PATH)
+function isGif(filePath) {
+    const extension = path.extname(filePath);
+    return extension === '.gif';
 }
 
 ////////////////////////////////////////////////////////////////
@@ -658,8 +664,12 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
         // Build the original file path
         const originalFilePath = path.join(vaultPathPath, config.obsidianAssetSubfolderName, asset.originalFileName).replace(/%20/g, " ");
 
+
         for (const newName of size.newName) {
             const newFilePath = path.join(docusaurusAssetFolderPath, newName);
+
+            console.log("asset.fileExtension")
+            console.log(asset.fileExtension)
 
             // Check if it's an image
             if (["jpg", "png", "webp", "jpeg", "bmp", "gif"].includes(asset.fileExtension)) {
@@ -677,47 +687,42 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
                         }
                     }
                 } catch (error) {
-                if (config.debug) {
-                    logger.info(`Failed to resize image and copy from ${originalFilePath} to ${newFilePath}: ${error.message}`);
+                    if (config.debug) {
+                        logger.info(`Failed to resize image and copy from ${originalFilePath} to ${newFilePath}: ${error.message}`);
+                    }
                 }
-            }
-        } else if (["excalidraw", "svg"].includes(asset.fileExtension)){
-            await convertSVG();
-            
-
-        } else {
-            // Copy the file to the new location
-            try {
-                await copyFile(originalFilePath, newFilePath);
-                if (config.debug) {
-                    logger.info(`File copied from ${originalFilePath} to ${newFilePath}`);
-                }
-            } catch (error) {
-                if (config.debug) {
-                    logger.error(`Failed to copy file from ${originalFilePath} to ${newFilePath}: ${error.message}`);
+            } else if (asset.fileExtension == "svg") {
+                await convertSVG(originalFilePath, newFilePath);
+            } else if (["excalidraw"].includes(asset.fileExtension)) {
+                await convertExcalidraw(originalFilePath, newFilePath, size.size);
+            } else {
+                // Copy the file to the new location
+                try {
+                    await copyFile(originalFilePath, newFilePath);
+                    if (config.debug) {
+                        logger.info(`File copied from ${originalFilePath} to ${newFilePath}`);
+                    }
+                } catch (error) {
+                    if (config.debug) {
+                        logger.error(`Failed to copy file from ${originalFilePath} to ${newFilePath}: ${error.message}`);
+                    }
                 }
             }
         }
     }
 }
+
+
+async function convertSVG(originalFilePath: string, newFilePath: string) {
+    await copyFile(originalFilePath, newFilePath);
 }
 
 
 
-
-
-
-
-function isGif(filePath) {
-    const extension = path.extname(filePath);
-    return extension === '.gif';
-}
+// Intitalize GraphicksMagic
+const gm = require('gm').subClass({ imageMagick: '7+' });
 
 async function resizeImage(originalFilePath: string, newFilePath: string, size: string): Promise<void> {
-
-    // Intitalize GraphicksMagic
-    const gm = require('gm').subClass({ imageMagick: '7+' });
-
     const widthOriginal: number = await getImageWidth(originalFilePath);
     let width: number;
     let height: string | number;
@@ -792,3 +797,4 @@ async function getAssetsToProcess(assetJson: Asset[], websitePath: string): Prom
     console.log(`🙈 ${assetsToProcess}`)
     return assetsToProcess;
 }
+

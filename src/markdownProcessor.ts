@@ -6,7 +6,6 @@ import { Admonition, Asset, Size } from "./types";
 
 export default async function processMarkdown(processedFileName: string, sourceContent: string, assetJson: AssetFileInfo[]): Promise<string> {
     // Create a stream from the source content
-
     const sourceStream = new stream.Readable();
     sourceStream.push(sourceContent);
     sourceStream.push(null);
@@ -22,10 +21,12 @@ export default async function processMarkdown(processedFileName: string, sourceC
     let transformedContent = '';
     let inAdmonition = false, inQuote = false;
     let admonition = { type: '', title: '', whitespaces: 0 };
+
     // Iterate over the lines
     for await (const line of rl) {
-        // Call your processing functions here
-        let processedLine = checkForAssets(line, processedFileName, assetJson);
+
+        let processedLine = await convertObsidianLinks(line);
+        processedLine = checkForAssets(processedLine, processedFileName, assetJson);
         processedLine = checkForLinks(processedLine);
         [processedLine, inAdmonition, inQuote, admonition] = convertAdmonition(processedLine, inAdmonition, inQuote, admonition);
 
@@ -35,6 +36,20 @@ export default async function processMarkdown(processedFileName: string, sourceC
 
     // Return the transformed content
     return transformedContent;
+}
+
+async function convertObsidianLinks(line: string) {
+
+    const pattern = new RegExp(`!\\[\\[(${config.docusaurusAssetSubfolderName}/.*?)\\]\\]`);
+    const match = line.match(pattern);
+
+    if (match !== null) {
+        const newPath = `![](${match[1]})`;
+        return line.replace(match[0], newPath);
+
+    } else {
+        return line;
+    }
 }
 
 const parseAdmonitionData = (line: string): Admonition => {
@@ -220,9 +235,10 @@ function checkForAssets(line: string, processedFileName: string, assetJson: Asse
 function processImage(line: string, fileName: string, fileExtension: string, size: string, sizeObject: Size): string {
     const sizeSuffix = size === "standard" ? "" : `_${size}`;
 
-    const extensionFormatMap: {[index: string]: string} = {
+    const extensionFormatMap: { [index: string]: string } = {
         "gif": `/assets/${fileName}${sizeSuffix}.${fileExtension}`,
-        "svg": `/assets/${fileName}${sizeSuffix}.light.svg#light`,
+        "svg": `/assets/${fileName}${sizeSuffix}.${fileExtension}`,
+        //"svg": `/assets/${fileName}${sizeSuffix}.light.svg#light`,
         "excalidraw": `/assets/${fileName}${sizeSuffix}.excalidraw.light.svg#light`
     };
 
@@ -233,7 +249,7 @@ function processImage(line: string, fileName: string, fileExtension: string, siz
         line = `![${fileName}](${newPath})`;
 
         // Special handling for SVG and excalidraw files
-        if (fileExtension === "svg" || fileExtension === "excalidraw") {
+        if (fileExtension === "excalidraw") {
             const darkPath = newPath.replace('.light.svg#light', '.dark.svg#dark');
             line += `\n![${fileName}](${darkPath})`;
 
@@ -246,7 +262,7 @@ function processImage(line: string, fileName: string, fileExtension: string, siz
     } else {
         line = `![${fileName}](${newPath})`;
     }
-    
+
     const newName = newPath.split("/").pop()?.split("#")[0];
     // Only add newName if it doesn't already exist in sizeObject.newName
     if (newName && !sizeObject.newName.includes(newName)) {
