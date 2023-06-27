@@ -737,9 +737,6 @@ async function resizeImage(originalFilePath: string, newFilePath: string, size: 
 
     if (size === "standard") {
         width = Math.min(widthOriginal, parseInt(config.convertedImageMaxWidth))
-        console.log("🌳")
-        console.log(width)
-        console.log(config.convertedImageMaxWidth)
         height = '';  // auto height
     } else {
         const dimensions = size.split("x");
