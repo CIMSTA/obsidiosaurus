@@ -6,7 +6,8 @@ export interface Config {
 	mainLanguage: string,
 	convertedImageType: string,
 	convertedImageMaxWidth: string,
-	debug: true,
+	debug: boolean,
+	developer: boolean
 }
 
 export interface MainFolder {

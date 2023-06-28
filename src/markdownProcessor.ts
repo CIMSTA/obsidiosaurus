@@ -1,7 +1,8 @@
 import * as readline from 'readline';
 import * as stream from 'stream'
-import { logger, config } from 'main';
+import { logger } from 'main';
 import { Admonition, Asset, Size } from "./types";
+import { config } from 'config';
 
 
 export default async function processMarkdown(processedFileName: string, sourceContent: string, assetJson: AssetFileInfo[]): Promise<string> {

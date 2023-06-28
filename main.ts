@@ -3,6 +3,7 @@ import obsidiosaurusProcess from 'src/mainProcessor'
 import { Config } from 'src/types'
 import pino from 'pino';
 import path from 'path';
+import { setSettings } from 'config';
 
 export const logger = pino();
 
@@ -13,15 +14,17 @@ export const config: Config = {
 	docusaurusAssetSubfolderName: "assets",
 	mainLanguage: "en",
 	convertedImageType: "webp",
-	convertedImageMaxWidth: "1000",
-	debug: true
+	convertedImageMaxWidth: "2500",
+	debug: false,
+	developer: false
 }
+
 export default class Obsidisaurus extends Plugin {
 	settings: Config;
 
 	async onload() {
 		await this.loadSettings();
-		if (config.debug) {
+		if (this.settings.debug) {
 			logger.info("🟢 Obsidiosaurus Plugin loaded");
 		}
 
@@ -33,7 +36,7 @@ export default class Obsidisaurus extends Plugin {
 				const basePath: string = path.dirname(this.app.vault.adapter.basePath);
 				await obsidiosaurusProcess(basePath)
 			} catch (error) {
-				if (config.debug) {
+				if (this.settings.debug) {
 					const errorMessage = `❌ Obsidiosaurus crashed in function with the following error:\n${error.stack}`;
 					logger.error(errorMessage);
 					new Notice(`❌ Obsidiosaurus crashed. \n${errorMessage}`);
@@ -58,6 +61,7 @@ export default class Obsidisaurus extends Plugin {
 
 	async loadSettings() {
 		this.settings = Object.assign({}, config, await this.loadData());
+		setSettings(this.settings);
 	}
 
 	async saveSettings() {
@@ -159,6 +163,28 @@ class SettingTab extends PluginSettingTab {
 					this.plugin.settings.mainLanguage = value;
 					await this.plugin.saveSettings();
 				}));
+
+		containerEl.createEl('h1', { text: 'Dev Options' });
+
+		new Setting(containerEl)
+			.setName('Debug mode')
+			.setDesc('Better logging for debugging')
+			.addToggle((value) => {
+				value.setValue(this.plugin.settings.debug).onChange((value) => {
+					this.plugin.settings.debug = value;
+					this.plugin.saveSettings();
+				});
+			});
+
+		new Setting(containerEl)
+			.setName('Developer mode')
+			.setDesc('Only for plugin developers')
+			.addToggle((value) => {
+				value.setValue(this.plugin.settings.debug).onChange((value) => {
+					this.plugin.settings.debug = value;
+					this.plugin.saveSettings();
+				});
+			});
 
 
 	}
