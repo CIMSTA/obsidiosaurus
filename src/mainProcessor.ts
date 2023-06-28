@@ -77,9 +77,8 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
         await copyAssetFilesToTarget(vaultPath, websitePath, assetJson, assetsToProcess);
     }
 
-    if (config.debug) {
-        logger.info("✅ Obsidiosaurus run successfully");
-    }
+
+    logger.info("✅ Obsidiosaurus run successfully");
     new Notice("✅ Obsidiosaurus run successfully");
 
     return true;
@@ -663,11 +662,8 @@ async function copyAssetFilesToTarget(vaultPathPath: string, websitePath: string
         // Build the original file path
         const originalFilePath = path.join(vaultPathPath, config.obsidianAssetSubfolderName, asset.originalFileName).replace(/%20/g, " ");
 
-
         for (const newName of size.newName) {
             const newFilePath = path.join(docusaurusAssetFolderPath, newName);
-
-            console.log(newName)
 
             // Check if it's an image
             if (["jpg", "png", "webp", "jpeg", "bmp", "gif"].includes(asset.fileExtension)) {
@@ -715,7 +711,6 @@ async function copySVG(originalFilePath: string, newFilePath: string) {
 }
 
 async function copyExcalidraw(originalFilePath: string, newFilePath: string) {
-    console.log(newFilePath)
     const filePath = originalFilePath.replace(".md", "");
     const newDarkFilePath = newFilePath.replace (".light", ".dark")
     const darkFilePath = filePath + ".dark.svg";
@@ -758,8 +753,7 @@ async function resizeImage(originalFilePath: string, newFilePath: string, size: 
     }
 
     imageProcess.write(newFilePath, function (err) {
-        if (err) console.log(err);
-        if (!err) console.log('done');
+        if (err) logger.error(err);
     });
 }
 
@@ -767,7 +761,7 @@ function getImageWidth(imagePath): Promise<number> {
     return new Promise((resolve, reject) => {
         gm(imagePath).size((err, size) => {
             if (err) {
-                console.log('Error getting image width: ', err);
+                logger.error('Error getting image width: ', err);
                 reject(err);
             } else {
                 resolve(size.width);
@@ -792,11 +786,10 @@ async function getAssetsToProcess(assetJson: Asset[], websitePath: string): Prom
 
     // Check if each document exists, if it does remove it from the array
     const assetsToProcess = documents.filter(document => {
-        console.log(document.path)
         const fileExists = fs.existsSync(path.join(websitePath, "static", config.docusaurusAssetSubfolderName, document.path));
 
-        if (!fileExists) {
-            console.log(`File ${document.path} does not exist.`);
+        if (!fileExists && config.debug) {
+            logger.info(`File ${document.path} does not exist.`);
         }
         return !fileExists; // Only keep it in the array if the file does not exist
     });
