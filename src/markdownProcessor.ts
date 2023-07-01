@@ -5,7 +5,7 @@ import { Admonition, Asset, Size } from "./types";
 import { config } from 'config';
 
 
-export default async function processMarkdown(processedFileName: string, sourceContent: string, assetJson: AssetFileInfo[]): Promise<string> {
+export default async function processMarkdown(processedFileName: string, sourceContent: string, assetJson: Asset[]): Promise<string> {
     // Create a stream from the source content
     const sourceStream = new stream.Readable();
     sourceStream.push(sourceContent);
@@ -205,6 +205,7 @@ function checkForAssets(line: string, processedFileName: string, assetJson: Asse
         let { size, path } = match.groups;
         const fileNameWithExtension = path.split('/').pop();
         // eslint-disable-next-line prefer-const
+        //@ts-ignore
         let [fileName, fileExtension] = fileNameWithExtension.split('.');
         fileName = fileName.replace(/ /g, "_");
         fileName = fileName.replace(/%20/g, "_");
@@ -220,13 +221,16 @@ function checkForAssets(line: string, processedFileName: string, assetJson: Asse
         } else {
             existingAsset = {
                 fileName,
+                //@ts-ignore
                 originalFileName: fileNameWithExtension,
                 fileExtension,
                 dateModified: new Date().toISOString(),
                 sourcePathRelative: path,
                 sizes: []
             };
+            //@ts-ignore
             existingSize = getOrCreateSize(existingAsset.sizes, size, processedFileName);
+            //@ts-ignore
             assetJson.push(existingAsset);
         }
 

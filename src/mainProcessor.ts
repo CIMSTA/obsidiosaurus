@@ -135,6 +135,7 @@ function augmentPathForMacOS() {
 
     if (os.platform() === 'darwin') {
         const homebrewPath = '/opt/homebrew/bin';
+        //@ts-ignore
         if (!process.env.PATH.includes(homebrewPath)) {
             process.env.PATH = homebrewPath + ':' + process.env.PATH;
             if (config.debug) {
@@ -145,7 +146,7 @@ function augmentPathForMacOS() {
 
 }
 
-function isGif(filePath) {
+function isGif(filePath: string) {
     const extension = path.extname(filePath);
     return extension === '.gif';
 }
@@ -296,7 +297,7 @@ async function compareSource(sourceJson: Partial<SourceFileInfo>[], targetJson: 
 // FILES
 ////////////////////////////////////////////////////////////////
 
-function getSourceFileInfo(basePath: string, folder: MainFolder, filePath: string, vaultPath): Partial<File> {
+function getSourceFileInfo(basePath: string, folder: MainFolder, filePath: string, vaultPath: string): Partial<File> {
     filePath = path.resolve(filePath);
     const stats = fs.statSync(filePath);
     const fileName = path.basename(filePath);
@@ -383,6 +384,7 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
     };
 
     // Get the main path from the dictionary
+    //@ts-ignore
     const mainPath = mainPathDict[type] || "";
 
     // Construct final relative source path
@@ -752,14 +754,15 @@ async function resizeImage(originalFilePath: string, newFilePath: string, size: 
         imageProcess = imageProcess.resize(width, height, '!');
     }
 
-    imageProcess.write(newFilePath, function (err) {
+    imageProcess.write(newFilePath, function (err: Error) {
         if (err) logger.error(err);
     });
 }
 
-function getImageWidth(imagePath): Promise<number> {
+function getImageWidth(imagePath: string): Promise<number> {
     return new Promise((resolve, reject) => {
-        gm(imagePath).size((err, size) => {
+        //@ts-ignore
+        gm(imagePath).size((err: Error, size) => {
             if (err) {
                 logger.error('Error getting image width: ', err);
                 reject(err);
