@@ -113,23 +113,30 @@ function checkForLinks(line: string): string {
     if (match) {
 
         const url = match[2];
-        const urlParts = url.split("/");
 
-        if (urlParts.length <= 1) return line;
+        // keep external links as is
+        if (url.includes("http")) {
+            return line;
+        // only continue with internal links
+        } else {
+            const urlParts = url.split("/");
 
-        let mainFolder = urlParts[0];
+            if (urlParts.length <= 1) return line;
 
-        const isBlog = isBlogFolder(mainFolder);
+            let mainFolder = urlParts[0];
 
-        if (isBlog) {
-            mainFolder = removeBlogSuffix(mainFolder);
-            urlParts[0] = mainFolder;
+            const isBlog = isBlogFolder(mainFolder);
+
+            if (isBlog) {
+                mainFolder = removeBlogSuffix(mainFolder);
+                urlParts[0] = mainFolder;
+            }
+
+            const processedUrlParts = processUrlParts(urlParts, isBlog);
+
+            const newUrl = "/" + processedUrlParts.join("/");
+            return line.replace(url, newUrl);
         }
-
-        const processedUrlParts = processUrlParts(urlParts, isBlog);
-
-        const newUrl = "/" + processedUrlParts.join("/");
-        return line.replace(url, newUrl);
     }
     return line
 }
