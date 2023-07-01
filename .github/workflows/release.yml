@@ -27,8 +27,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
-
+          
           gh release create "$tag" \
             --title="$tag" \
             --draft \
-            main.js manifest.json styles.css obsidiosaurus.py src/*
+            main.js manifest.json styles.css
