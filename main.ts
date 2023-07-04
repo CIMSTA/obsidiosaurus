@@ -1,4 +1,4 @@
-import { App, Plugin, PluginSettingTab, Setting, Notice } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting, Notice, FileSystemAdapter } from 'obsidian';
 import obsidiosaurusProcess from 'src/mainProcessor'
 import { Config } from 'src/types'
 import pino from 'pino';
@@ -33,8 +33,10 @@ export default class Obsidisaurus extends Plugin {
 				logger.info("🚀 Obsidiosaurus started");
 				new Notice("🚀 Obsidiosaurus started")
 				// @ts-ignore, it says there is no property basePath, but it is?
-				const basePath: string = path.dirname(this.app.vault.adapter.basePath);
-				await obsidiosaurusProcess(basePath)
+				if(this.app.vault.adapter instanceof FileSystemAdapter) {
+					const basePath = path.dirname(this.app.vault.adapter.getBasePath());
+					await obsidiosaurusProcess(basePath);
+				}
 			} catch (error) {
 				if (this.settings.debug) {
 					const errorMessage = `❌ Obsidiosaurus crashed in function with the following error:\n${error.stack}`;
@@ -87,16 +89,6 @@ class SettingTab extends PluginSettingTab {
 		containerEl.createEl('h1', { text: 'Directories' });
 
 		new Setting(containerEl)
-			.setName('Obsidian Directory')
-			.setDesc('Path to your obsidian vault')
-			.addText(text => text
-				.setPlaceholder('Enter path')
-				.setValue(this.plugin.settings.obsidianVaultDirectory)
-				.onChange(async (value) => {
-					this.plugin.settings.obsidianVaultDirectory = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
 			.setName('Docusaurus Directory')
 			.setDesc('Path to your docusaurus instance')
 			.addText(text => text
@@ -108,6 +100,7 @@ class SettingTab extends PluginSettingTab {
 				}));
 
 		containerEl.createEl('h1', { text: 'Assets' });
+
 		new Setting(containerEl)
 			.setName('Obsidian Asset Folder')
 			.setDesc('Name of Obsidian Asset Folder')
