@@ -134,7 +134,8 @@ function augmentPathForMacOS() {
     }
 
     if (os.platform() === 'darwin') {
-        const homebrewPath = '/opt/homebrew/bin';
+        // Add paths for homebrew on Apple Silicion and Intel
+        const homebrewPath = '/opt/homebrew/bin:/usr/local/bin/brew'
         //@ts-ignore
         if (!process.env.PATH.includes(homebrewPath)) {
             process.env.PATH = homebrewPath + ':' + process.env.PATH;
@@ -146,10 +147,6 @@ function augmentPathForMacOS() {
 
 }
 
-function isGif(filePath: string) {
-    const extension = path.extname(filePath);
-    return extension === '.gif';
-}
 
 ////////////////////////////////////////////////////////////////
 // FOLDERS
