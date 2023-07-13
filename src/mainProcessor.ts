@@ -37,6 +37,8 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     // Verify existence of files in target.json and remove if not present
     targetJson = await checkFilesExistence(targetJson)
 
+    
+
     // Check if source files are newer or missing in vault and prepare for deletion
     const filesToDelete = await getFilesToDelete(allSourceFilesInfo, targetJson);
 
@@ -76,6 +78,9 @@ export default async function obsidiosaurusProcess(basePath: string): Promise<bo
     if (assetsToProcess.length > 0) {
         await copyAssetFilesToTarget(vaultPath, websitePath, assetJson, assetsToProcess);
     }
+
+    // Delete unused markdown files from Docusaurus
+    deleteUnusedFiles(targetJson, websitePath);
 
 
     logger.info("✅ Obsidiosaurus run successfully");
@@ -533,6 +538,53 @@ async function checkFilesExistence(targetJson: SourceFileInfo[]): Promise<Source
     }
 
     return files as SourceFileInfo[];
+}
+
+export function deleteUnusedFiles(json: SourceFileInfo[], websitePath: string) {
+    const targetDirectories = ['blog', 'i18n', 'docs'];
+    const blogSuffix = "__blog"
+  
+    let filesFound: string[] = [];
+  
+    function exploreDirectory(directory: string) {
+        const entries = fs.readdirSync(directory, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(directory, entry.name);
+            if (entry.isDirectory()) {
+                exploreDirectory(fullPath);
+            } else if (entry.isFile()) {
+                filesFound.push(fullPath);
+            }
+        }
+    }
+  
+    // Scan each target directory
+    targetDirectories.forEach(dir => {
+      const dirPath = path.join(websitePath, dir);
+      if (fs.existsSync(dirPath)) {
+        exploreDirectory(dirPath);
+      }
+    });
+  
+    // Go through other directories and look for blogSuffix folders
+    const allDirectories = fs.readdirSync(websitePath, { withFileTypes: true });
+    const otherDirectories = allDirectories.filter(dir => dir.name.endsWith(blogSuffix));
+  
+    otherDirectories.forEach(dir => {
+      const dirPath = path.join(websitePath, dir.name);
+      exploreDirectory(dirPath);
+    });
+  
+    // Iterate through filesFound and check against the json
+    filesFound.forEach(async file => {
+      const fileIsUsed = json.some(j => j.pathTargetAbsolute === file);
+  
+      // Delete the file if it's not used
+      if (!fileIsUsed) {
+        await fs.promises.unlink(file);
+        console.log(`Deleted unused file: ${file}`);
+      }
+    });
 }
 
 ////////////////////////////////////////////////////////////////
