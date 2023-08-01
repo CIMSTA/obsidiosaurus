@@ -380,7 +380,7 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
 
     const mainPathDict = {
         'docs': isMainLanguage ? "" : path.join("i18n", language, "docusaurus-plugin-content-docs", "current"),
-        'blog': isMainLanguage ? "" : path.join("i18n", language, "docusaurus-plugin-content-blog", "current"),
+        'blog': isMainLanguage ? "" : path.join("i18n", language, "docusaurus-plugin-content-blog"),
         'blogMulti': isMainLanguage || !mainFolder ? "" : path.join("i18n", language, `docusaurus-plugin-content-blog-${mainFolder}`),
         'assets': path.join("static", config.docusaurusAssetSubfolderName),
     };
@@ -394,8 +394,14 @@ function getTargetPath(sourceFileInfo: Partial<SourceFileInfo>, basePath: string
 
     if (parentFolder.endsWith('+')) {
         const pathParts = finalPathSourceRelative.split(path.sep);
+
         // If parent folder name ends with '+', remove the last part of the path
         pathParts.pop();
+
+        // To remove e.g. "docs" from relative path -> otherwise "i18n/language/docusaurus-plugin-content-docs/current/docs<- remove/... 
+        pathParts.shift();
+
+        console.log(`❌ ${pathParts}`)
 
         if (pathParts.length > 0) {
             let lastPart = pathParts[pathParts.length - 1];
