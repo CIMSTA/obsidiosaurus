@@ -14,13 +14,13 @@ _<p align="center">Obsidian + Docusaurus = Where your obsidian notes meet the we
 
 Obsidiosaurus is a converter for [Obsidian](https://obsidian.md/) markdown notes to the static site builder [Docusaurus](https://docusaurus.io/)
 
-It allows for a better exeperience writing and maintaining the markdown files, since both share alot of common featues.
+It allows for a better experience writing and maintaining the markdown files, since both share a lot of common features.
 
 🚧 CURRENTLY IN DEVELOPMENT! EXPECT BUGS
 
 # 👀 Documentation
 
-You find detailed instruction how to use and setup in the [offical Documentation](https://cimsta.github.io/obsidiosaurus-docs/docs/main/Introduction)
+You find detailed instructions in how to use and setup in the [official Documentation](https://cimsta.github.io/obsidiosaurus-docs/docs/main/Introduction)
 Website made with Docusaurus and Obsidian using Obsidiosaurus, interested to see the Docs repo? [Check here](https://github.com/CIMSTA/obsidiosaurus-docs)
 
 # 📃 Features:
