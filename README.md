@@ -20,7 +20,7 @@ It allows for a better experience writing and maintaining the markdown files, si
 
 # 👀 Documentation
 
-You find detailed instructions in how to use and setup in the [official Documentation](https://cimsta.github.io/obsidiosaurus-docs/docs/main/Introduction)
+You find detailed instructions on how to use and setup in the [official Documentation](https://cimsta.github.io/obsidiosaurus-docs/docs/main/Introduction)
 Website made with Docusaurus and Obsidian using Obsidiosaurus, interested to see the Docs repo? [Check here](https://github.com/CIMSTA/obsidiosaurus-docs)
 
 # 📃 Features:
