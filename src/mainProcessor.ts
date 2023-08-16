@@ -506,8 +506,6 @@ function getTargetPath(
 			pathParts.shift();
 		}
 
-		console.log(`❌ ${pathParts}`);
-
 		if (pathParts.length > 0) {
 			let lastPart = pathParts[pathParts.length - 1];
 
@@ -989,7 +987,7 @@ async function copyAssetFilesToTarget(
 				}
 			} else if (asset.fileExtension == "svg") {
 				await copySVG(originalFilePath, newFilePath);
-			} else if (["excalidraw"].includes(asset.fileExtension)) {
+			} else if ([asset.fileExtension].includes("excalidraw")) {
 				await copyExcalidraw(originalFilePath, newFilePath);
 			} else {
 				// Copy the file to the new location
