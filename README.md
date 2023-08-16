@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a href=""><img width="124" src="/logo.svg" alt="Obisidiosaurus"></a><br>
+  <a href=""><img width="124" src="/logo.svg" alt="Obsidiosaurus"></a><br>
   Obisidiosaurus
 </h1>
 
