@@ -3,7 +3,7 @@
   Obisidiosaurus
 </h1>
 
-_<p align="center">Obsidian + Docusaurus = Where your obsidian notes meet the web</p>_
+_<p align="center">Obsidian + Docusaurus = Where your Obsidian notes meet the web</p>_
 
 <p align="center">
   <a href=""><img src="https://img.shields.io/badge/license-MIT-blue.svg?label=License&style=flat" /></a>
