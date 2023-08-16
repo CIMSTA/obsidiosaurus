@@ -16,6 +16,8 @@ Obsidiosaurus is a converter for [Obsidian](https://obsidian.md/) markdown notes
 
 It allows for a better exeperience writing and maintaining the markdown files, since both share alot of common featues.
 
+🚧 CURRENTLY IN DEVELOPMENT! EXPECT BUGS
+
 # 👀 Documentation
 
 You find detailed instruction how to use and setup in the [offical Documentation](https://cimsta.github.io/obsidiosaurus-docs/docs/main/Introduction)
