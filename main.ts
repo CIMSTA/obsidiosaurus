@@ -7,7 +7,7 @@ import {
 	FileSystemAdapter,
 } from "obsidian";
 import path from "path";
-import { setSettings, Config } from "config";
+import { setSettings, Config } from "src/Config";
 import MarkdownFileHandler from "./src/MarkdownFileHandler";
 
 export const CONFIG: Config = {
@@ -24,11 +24,16 @@ export const CONFIG: Config = {
 
 export default class Obsidisaurus extends Plugin {
 	settings: Config;
+	markdownFileHandler: MarkdownFileHandler | null = null;
 
 	async onload() {
 		await this.loadSettings();
 		if (this.settings.debug) {
 			console.log("🟢 Obsidiosaurus Plugin loaded");
+		}
+		if (this.app.vault.adapter instanceof FileSystemAdapter) {
+			const basePath = path.dirname(this.app.vault.adapter.getBasePath());
+			this.markdownFileHandler = new MarkdownFileHandler(basePath);
 		}
 
 		const ribbonIconEl = this.addRibbonIcon(
@@ -39,20 +44,8 @@ export default class Obsidisaurus extends Plugin {
 					console.log("🚀 Obsidiosaurus started");
 					new Notice("🚀 Obsidiosaurus started");
 					// @ts-ignore, it says there is no property basePath, but it is?
-					if (this.app.vault.adapter instanceof FileSystemAdapter) {
-						const basePath = path.dirname(
-							this.app.vault.adapter.getBasePath()
-						);
 
-						const markdownFileHandler = new MarkdownFileHandler(
-							basePath
-						);
-
-						console.log("ups");
-
-						await markdownFileHandler.startConversion();
-						console.log("okay");
-					}
+					await this.markdownFileHandler.startConversion();
 				} catch (error) {
 					if (this.settings.debug) {
 						const errorMessage = `❌ Obsidiosaurus crashed in function with the following error:\n${error.stack}`;
@@ -90,7 +83,9 @@ export default class Obsidisaurus extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		// TODO: Implement Delete Database File
+		if (this.markdownFileHandler) {
+			this.markdownFileHandler.resetDatabase();
+		}
 	}
 }
 
