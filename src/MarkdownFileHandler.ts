@@ -65,6 +65,12 @@ class MarkdownFileHandler {
 
 		while (directories.length) {
 			const currentFolderPath = directories.pop();
+
+			// TS: Skip iteration if currentFolderPath is undefined
+			if (typeof currentFolderPath === "undefined") {
+				continue;
+			}
+
 			let entities = fs.readdirSync(currentFolderPath, {
 				withFileTypes: true,
 			});
@@ -98,7 +104,7 @@ class MarkdownFileHandler {
 							)
 						);
 					} else {
-						console.log(fullEntityPath);
+						//console.log(fullEntityPath);
 						markdownFiles.push(
 							new MarkdownFile(baseFolderPath, fullEntityPath)
 						);
