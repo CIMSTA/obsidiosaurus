@@ -9,6 +9,7 @@ import {
 import obsidiosaurusProcess from "old/mainProcessor";
 import path from "path";
 import { setSettings, Config } from "config";
+import MarkdownFileHandler from "./src/MarkdownFileHandler";
 
 export const CONFIG: Config = {
 	obsidianVaultDirectory: "./vault",
@@ -43,7 +44,11 @@ export default class Obsidisaurus extends Plugin {
 						const basePath = path.dirname(
 							this.app.vault.adapter.getBasePath()
 						);
-						await obsidiosaurusProcess(basePath);
+						const markdownFileHandler = new MarkdownFileHandler(
+							CONFIG.obsidianVaultDirectory,
+							CONFIG.docusaurusWebsiteDirectory,
+							"data.json"
+						);
 					}
 				} catch (error) {
 					if (this.settings.debug) {
