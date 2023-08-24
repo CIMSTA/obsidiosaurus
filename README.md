@@ -71,7 +71,7 @@ Overview about what is currently supported:
 
 # 💭 Need help?
 
-If you need more info, help or want to provide general feedback, join the [CIMSTA Discord Channel](https://discord.gg/SSGK5tuqJh).
+If you need more info, help or want to provide general feedback, join our [Obsidiosaurus Discord Channel](https://discord.gg/SSGK5tuqJh).
 
 # ✍ Author
 
