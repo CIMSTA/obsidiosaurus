@@ -2,7 +2,6 @@ import fs from "fs-extra";
 import * as path from "path";
 import { MarkdownFile, MarkdownSourceFile } from "./MarkdownFile";
 import { CONFIG } from "../main";
-import { dir } from "console";
 
 interface MdConversionEntry {
 	sourcePath: string;
@@ -75,7 +74,6 @@ export default class MarkdownFileHandler {
 		await this.startDeletingEmptyDirectories();
 		console.timeEnd("Delete Entries");
 		//this.resetDatabase();
-
 		console.timeEnd("Conversion Time");
 	}
 
