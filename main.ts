@@ -6,8 +6,8 @@ import {
 	Notice,
 	FileSystemAdapter,
 } from "obsidian";
-import obsidiosaurusProcess from "src/mainProcessor";
-import { Config } from "src/types";
+import obsidiosaurusProcess from "old/mainProcessor";
+import { Config } from "old/types";
 import pino from "pino";
 import path from "path";
 import { setSettings } from "config";
