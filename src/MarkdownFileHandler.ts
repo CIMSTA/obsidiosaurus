@@ -49,25 +49,32 @@ export default class MarkdownFileHandler {
 			);
 		}
 		console.timeEnd("SourceFiles");
+
 		console.time("TargetFiles");
 		const targetFiles = this.parseMdFiles(this.targetFolder);
 		console.timeEnd("TargetFiles");
+
 		console.time("Load Entries");
 		const mdConversionEntries = this.loadMdFilesFromJson();
 		console.timeEnd("Load Entries");
+
 		console.time("Check TargetFiles");
 		this.checkTargetFiles(targetFiles, sourceFiles, mdConversionEntries);
 		console.timeEnd("Check TargetFiles");
+
 		console.time("SourceFiles");
 		this.checkSourceFiles(sourceFiles, targetFiles, mdConversionEntries);
 		console.timeEnd("SourceFiles");
+
 		console.time("Save Entries");
 		this.saveMdFilesToJson(mdConversionEntries);
 		console.timeEnd("Save Entries");
+
 		console.time("Delete Entries");
 		this.removeEmptyDirectories(this.targetFolder);
 		console.timeEnd("Delete Entries");
 		//this.resetDatabase();
+
 		console.timeEnd("Conversion Time");
 	}
 
