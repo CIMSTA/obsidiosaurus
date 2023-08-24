@@ -12,27 +12,27 @@ interface MdConversionEntry {
  * Class MarkdownConverter responsible for converting Markdown files from a source directory to a target directory
  * Includes methods for parsing directories, handling conversion and managing metadata of conversions
  ***************************************************************************************************************/
-class MarkdownFileHandler {
+export default class MarkdownFileHandler {
 	sourceFolder: string;
 	targetFolder: string;
 	dataFile: string;
 
-	constructor(
-		sourceFolderPath: string,
-		targetFolderPath: string,
-		dataFilePath: string
-	) {
-		this.sourceFolder = sourceFolderPath;
-		this.targetFolder = targetFolderPath;
+	constructor(basePath: string) {
+		this.sourceFolder = path.join(basePath, CONFIG.obsidianVaultDirectory);
+		this.targetFolder = path.join(
+			basePath,
+			CONFIG.docusaurusWebsiteDirectory
+		);
 		// JSON file that stores data around currently converted files
-		this.dataFile = dataFilePath;
+		this.dataFile = path.join(basePath, "database.json");
 	}
 
 	/**
 	 * startConversion handles the conversion of source markdown files to target directory
 	 * Checks for file state and decides whether to convert, delete or leave the file
 	 */
-	startConversion(): void {
+	async startConversion(): Promise<void> {
+		console.log("start");
 		console.time("Conversion Time");
 		const sourceFiles = this.parseMdFiles(this.sourceFolder);
 		// Type Guard to ensure "sourceFiles" is of the correct type

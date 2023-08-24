@@ -6,7 +6,6 @@ import {
 	Notice,
 	FileSystemAdapter,
 } from "obsidian";
-import obsidiosaurusProcess from "old/mainProcessor";
 import path from "path";
 import { setSettings, Config } from "config";
 import MarkdownFileHandler from "./src/MarkdownFileHandler";
@@ -19,7 +18,7 @@ export const CONFIG: Config = {
 	mainLanguage: "en",
 	convertedImageType: "webp",
 	convertedImageMaxWidth: "2500",
-	debug: false,
+	debug: true,
 	developer: false,
 };
 
@@ -44,11 +43,15 @@ export default class Obsidisaurus extends Plugin {
 						const basePath = path.dirname(
 							this.app.vault.adapter.getBasePath()
 						);
+
 						const markdownFileHandler = new MarkdownFileHandler(
-							CONFIG.obsidianVaultDirectory,
-							CONFIG.docusaurusWebsiteDirectory,
-							"data.json"
+							basePath
 						);
+
+						console.log("ups");
+
+						await markdownFileHandler.startConversion();
+						console.log("okay");
 					}
 				} catch (error) {
 					if (this.settings.debug) {
