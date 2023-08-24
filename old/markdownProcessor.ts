@@ -2,7 +2,7 @@ import * as readline from "readline";
 import * as stream from "stream";
 import { logger } from "main";
 import { Admonition, Asset, Size } from "./types";
-import { config } from "config";
+import { config } from "src/Config";
 
 export default async function processMarkdown(
 	processedFileName: string,

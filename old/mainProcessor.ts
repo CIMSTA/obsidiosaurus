@@ -2,7 +2,7 @@ import { MainFolder, SourceFileInfo, FilesToProcess, Asset } from "./types";
 import processMarkdown from "./markdownProcessor";
 import { Notice } from "obsidian";
 import { logger } from "main";
-import { config } from "config";
+import { config } from "src/Config";
 import * as fs from "fs";
 import * as path from "path";
 import util from "util";
