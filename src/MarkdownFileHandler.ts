@@ -410,6 +410,24 @@ export default class MarkdownFileHandler {
 		}
 	}
 
+	async startHardReset() {
+		let directories = this.getAllDirectories(this.targetFolder);
+		directories = this.filterDirectories(directories);
+		for (const directory of directories) {
+			let searchFolder = path.join(this.targetFolder, directory);
+			await fs.rm(
+				searchFolder,
+				{ recursive: true, force: true },
+				(err) => {
+					if (err) {
+						throw err;
+					}
+					console.log(`${searchFolder} is deleted!`);
+				}
+			);
+		}
+	}
+
 	isMarkdownSourceFileArray(
 		files: MarkdownFile[] | MarkdownSourceFile[]
 	): files is MarkdownSourceFile[] {
