@@ -7,12 +7,8 @@ import {
 	FileSystemAdapter,
 } from "obsidian";
 import obsidiosaurusProcess from "old/mainProcessor";
-import { Config } from "old/types";
-import pino from "pino";
 import path from "path";
-import { setSettings } from "config";
-
-export const logger = pino();
+import { setSettings, Config } from "config";
 
 export const CONFIG: Config = {
 	obsidianVaultDirectory: "./vault",
@@ -32,7 +28,7 @@ export default class Obsidisaurus extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		if (this.settings.debug) {
-			logger.info("🟢 Obsidiosaurus Plugin loaded");
+			console.log("🟢 Obsidiosaurus Plugin loaded");
 		}
 
 		const ribbonIconEl = this.addRibbonIcon(
@@ -40,7 +36,7 @@ export default class Obsidisaurus extends Plugin {
 			"Obsidiosaurus",
 			async (evt: MouseEvent) => {
 				try {
-					logger.info("🚀 Obsidiosaurus started");
+					console.log("🚀 Obsidiosaurus started");
 					new Notice("🚀 Obsidiosaurus started");
 					// @ts-ignore, it says there is no property basePath, but it is?
 					if (this.app.vault.adapter instanceof FileSystemAdapter) {
@@ -52,12 +48,12 @@ export default class Obsidisaurus extends Plugin {
 				} catch (error) {
 					if (this.settings.debug) {
 						const errorMessage = `❌ Obsidiosaurus crashed in function with the following error:\n${error.stack}`;
-						logger.error(errorMessage);
+						console.error(errorMessage);
 						new Notice(
 							`❌ Obsidiosaurus crashed. \n${errorMessage}`
 						);
 					} else {
-						logger.error(
+						console.error(
 							`❌ Obsidiosaurus crashed with error message: \n${error} `
 						);
 						new Notice(
@@ -74,18 +70,19 @@ export default class Obsidisaurus extends Plugin {
 	}
 
 	onunload() {
-		if (config.debug) {
-			logger.info("⚪ Obsidiosaurus Plugin unloaded");
+		if (CONFIG.debug) {
+			console.error("⚪ Obsidiosaurus Plugin unloaded");
 		}
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, config, await this.loadData());
+		this.settings = Object.assign({}, CONFIG, await this.loadData());
 		setSettings(this.settings);
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		// TODO: Implement Delete Database File
 	}
 }
 
