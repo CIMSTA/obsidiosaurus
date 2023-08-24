@@ -1,9 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { CONFIG } from "../main";
-
-const FIRST_LEVEL_SUBDIRS = ["docs", "blog", "i18n"];
-const MULTI_BLOG_ENDING = "__blog";
+import { FIRST_LEVEL_SUBDIRS, MULTI_BLOG_ENDING } from "./MarkdownFileHandler";
 
 /***************************************************************************************************************
  * Class MarkdownFile that represents a Markdown file

@@ -8,6 +8,9 @@ interface MdConversionEntry {
 	targetPath: string;
 }
 
+export const FIRST_LEVEL_SUBDIRS = ["docs", "blog", "i18n"];
+export const MULTI_BLOG_ENDING = "__blog";
+
 /***************************************************************************************************************
  * Class MarkdownConverter responsible for converting Markdown files from a source directory to a target directory
  * Includes methods for parsing directories, handling conversion and managing metadata of conversions
@@ -16,6 +19,7 @@ export default class MarkdownFileHandler {
 	sourceFolder: string;
 	targetFolder: string;
 	dataFile: string;
+	basePath: string;
 
 	constructor(basePath: string) {
 		this.sourceFolder = path.join(basePath, CONFIG.obsidianVaultDirectory);
@@ -25,6 +29,7 @@ export default class MarkdownFileHandler {
 		);
 		// JSON file that stores data around currently converted files
 		this.dataFile = path.join(basePath, "database.json");
+		this.basePath = basePath;
 	}
 
 	/**
@@ -34,24 +39,35 @@ export default class MarkdownFileHandler {
 	async startConversion(): Promise<void> {
 		console.log("start");
 		console.time("Conversion Time");
+		console.time("SourceFiles");
 		const sourceFiles = this.parseMdFiles(this.sourceFolder);
+
 		// Type Guard to ensure "sourceFiles" is of the correct type
 		if (!isMarkdownSourceFileArray(sourceFiles)) {
 			throw new Error(
 				"Expected sourceFiles to be of type MarkdownSourceFile[]"
 			);
 		}
+		console.timeEnd("SourceFiles");
+		console.time("TargetFiles");
 		const targetFiles = this.parseMdFiles(this.targetFolder);
+		console.timeEnd("TargetFiles");
+		console.time("Load Entries");
 		const mdConversionEntries = this.loadMdFilesFromJson();
-
+		console.timeEnd("Load Entries");
+		console.time("Check TargetFiles");
 		this.checkTargetFiles(targetFiles, sourceFiles, mdConversionEntries);
+		console.timeEnd("Check TargetFiles");
+		console.time("SourceFiles");
 		this.checkSourceFiles(sourceFiles, targetFiles, mdConversionEntries);
-
+		console.timeEnd("SourceFiles");
+		console.time("Save Entries");
 		this.saveMdFilesToJson(mdConversionEntries);
-
+		console.timeEnd("Save Entries");
+		console.time("Delete Entries");
 		this.removeEmptyDirectories(this.targetFolder);
-
-		this.resetDatabase();
+		console.timeEnd("Delete Entries");
+		//this.resetDatabase();
 		console.timeEnd("Conversion Time");
 	}
 
@@ -95,7 +111,7 @@ export default class MarkdownFileHandler {
 					path.extname(entity.name) === ".md" ||
 					path.extname(entity.name) === ".yml"
 				) {
-					if (baseFolderPath === CONFIG.obsidianVaultDirectory) {
+					if (baseFolderPath === this.sourceFolder) {
 						markdownFiles.push(
 							new MarkdownSourceFile(
 								baseFolderPath,
@@ -316,22 +332,31 @@ export default class MarkdownFileHandler {
 		console.log(`Converted ${sourceFile.absolutepath} as ${reason}.`);
 	}
 
+	getAllDirectories(directoryPath: string) {
+		return fs
+			.readdirSync(directoryPath, { withFileTypes: true })
+			.filter((dirent) => dirent.isDirectory())
+			.map((dirent) => dirent.name);
+	}
+
+	filterDirectories(directories: string[]) {
+		return directories.filter(
+			(dir) =>
+				FIRST_LEVEL_SUBDIRS.includes(dir) ||
+				dir.endsWith(MULTI_BLOG_ENDING)
+		);
+	}
+
 	/**
 	 * Recursively removes empty directories in the specified directory and its subdirectories
 	 *
 	 * @param {string} directoryPath path of the directory to check
 	 */
 	removeEmptyDirectories(directoryPath: string): void {
-		const FIRST_LEVEL_SUBDIRS = ["docs", "blog", "i18n"];
-		const MULTI_BLOG_ENDING = "__blog"; // endswith
+		const directories = this.getAllDirectories(directoryPath);
+		const filteredDirectories = this.filterDirectories(directories);
 
-		// Get all directories
-		const directories = fs
-			.readdirSync(directoryPath, { withFileTypes: true })
-			.filter((dirent) => dirent.isDirectory())
-			.map((dirent) => dirent.name);
-
-		directories.forEach((dir) => {
+		filteredDirectories.forEach((dir) => {
 			const fullDirPath = path.join(directoryPath, dir);
 
 			// Recursively remove empty directories in subdirectories first
@@ -339,7 +364,7 @@ export default class MarkdownFileHandler {
 
 			// Then check if the current directory is empty and remove it if it is
 			const files = fs.readdirSync(fullDirPath);
-			if (files.length === 0 && directoryPath !== this.sourceFolder) {
+			if (files.length === 0) {
 				fs.rmdirSync(fullDirPath);
 				console.log(`Deleted ${fullDirPath}`);
 			}
