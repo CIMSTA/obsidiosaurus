@@ -1,7 +1,8 @@
-import * as fs from "fs";
+import fs from "fs-extra";
 import * as path from "path";
 import { MarkdownFile, MarkdownSourceFile } from "./MarkdownFile";
 import { CONFIG } from "../main";
+import { dir } from "console";
 
 interface MdConversionEntry {
 	sourcePath: string;
@@ -37,13 +38,13 @@ export default class MarkdownFileHandler {
 	 * Checks for file state and decides whether to convert, delete or leave the file
 	 */
 	async startConversion(): Promise<void> {
-		console.log("start");
 		console.time("Conversion Time");
+
 		console.time("SourceFiles");
 		const sourceFiles = this.parseMdFiles(this.sourceFolder);
 
 		// Type Guard to ensure "sourceFiles" is of the correct type
-		if (!isMarkdownSourceFileArray(sourceFiles)) {
+		if (!this.isMarkdownSourceFileArray(sourceFiles)) {
 			throw new Error(
 				"Expected sourceFiles to be of type MarkdownSourceFile[]"
 			);
@@ -71,7 +72,7 @@ export default class MarkdownFileHandler {
 		console.timeEnd("Save Entries");
 
 		console.time("Delete Entries");
-		this.removeEmptyDirectories(this.targetFolder);
+		await this.startDeletingEmptyDirectories();
 		console.timeEnd("Delete Entries");
 		//this.resetDatabase();
 
@@ -81,8 +82,6 @@ export default class MarkdownFileHandler {
 	parseMdFiles(
 		baseFolderPath: string
 	): MarkdownFile[] | MarkdownSourceFile[] {
-		const FIRST_LEVEL_SUBDIRS = ["docs", "blog", "i18n"];
-		const MULTI_BLOG_ENDING = "__blog";
 		let markdownFiles: MarkdownFile[] = [];
 		let directories = [baseFolderPath];
 
@@ -354,44 +353,66 @@ export default class MarkdownFileHandler {
 		);
 	}
 
+	async startDeletingEmptyDirectories() {
+		let directories = this.getAllDirectories(this.targetFolder);
+		directories = this.filterDirectories(directories);
+		for (const directory of directories) {
+			let searchFolder = path.join(this.targetFolder, directory);
+			await this.removeEmptyDirectories(searchFolder);
+		}
+	}
+
 	/**
 	 * Recursively removes empty directories in the specified directory and its subdirectories
 	 *
 	 * @param {string} directoryPath path of the directory to check
 	 */
-	removeEmptyDirectories(directoryPath: string): void {
-		const directories = this.getAllDirectories(directoryPath);
-		const filteredDirectories = this.filterDirectories(directories);
+	async removeEmptyDirectories(directoryPath: string) {
+		const files = await fs.readdir(directoryPath);
 
-		filteredDirectories.forEach((dir) => {
-			const fullDirPath = path.join(directoryPath, dir);
+		for (const file of files) {
+			const fullPath = path.join(directoryPath, file);
+			const stats = await fs.stat(fullPath);
 
-			// Recursively remove empty directories in subdirectories first
-			this.removeEmptyDirectories(fullDirPath);
-
-			// Then check if the current directory is empty and remove it if it is
-			const files = fs.readdirSync(fullDirPath);
-			if (files.length === 0) {
-				fs.rmdirSync(fullDirPath);
-				console.log(`Deleted ${fullDirPath}`);
+			if (stats.isDirectory()) {
+				await this.removeEmptyDirectories(fullPath);
 			}
-		});
+
+			// Delete .DS_Store file if it exists
+			if (file === ".DS_Store") {
+				await fs.unlink(fullPath);
+				console.log(`Deleted ${fullPath}`);
+			}
+		}
+
+		const updatedFiles = await fs.readdir(directoryPath);
+
+		if (updatedFiles.length === 0) {
+			await fs.rmdir(directoryPath);
+			console.log(`Deleted ${directoryPath}`);
+		}
 	}
 
 	// Removes the Database
 	resetDatabase(): void {
 		try {
-			console.log(`Deleting ${this.dataFile}`);
-			fs.unlinkSync(this.dataFile);
-			console.log(`${this.dataFile} deleted successfully`);
+			if (fs.existsSync(this.dataFile)) {
+				console.log(`Deleting ${this.dataFile}`);
+				fs.unlinkSync(this.dataFile);
+				console.log(`Markdown Database File deleted successfully`);
+			} else {
+				console.log(
+					`Markdown Database File does not exist, no need to delete`
+				);
+			}
 		} catch (error) {
 			console.error(`Error deleting ${this.dataFile}: ${error}`);
 		}
 	}
-}
 
-function isMarkdownSourceFileArray(
-	files: MarkdownFile[] | MarkdownSourceFile[]
-): files is MarkdownSourceFile[] {
-	return files.every((file) => file instanceof MarkdownSourceFile);
+	isMarkdownSourceFileArray(
+		files: MarkdownFile[] | MarkdownSourceFile[]
+	): files is MarkdownSourceFile[] {
+		return files.every((file) => file instanceof MarkdownSourceFile);
+	}
 }
