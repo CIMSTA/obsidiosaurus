@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import { CONFIG } from "../main";
-import { FIRST_LEVEL_SUBDIRS, MULTI_BLOG_ENDING } from "./MarkdownFileHandler";
 
 /***************************************************************************************************************
  * Class MarkdownFile that represents a Markdown file
@@ -106,8 +105,6 @@ export class MarkdownSourceFile extends MarkdownFile {
 	}
 
 	getLanguage(fileName: string) {
-		console.log("Input FileName:", fileName);
-
 		const languageCodeMatch = fileName.match(/__([a-z]{2})(?:\.\w+)?$/i);
 
 		if (languageCodeMatch) {
