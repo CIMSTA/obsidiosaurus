@@ -144,7 +144,8 @@ function checkForLinks(line: string): string {
 function processUrlParts(urlParts: string[], isBlog: boolean): string[] {
     urlParts = [...urlParts];  // create a copy to not modify original
 
-    const file = urlParts[urlParts.length - 1];
+    const [file, anchor] = urlParts[urlParts.length - 1].split("#");
+
     let parentFolder = urlParts[urlParts.length - 2];
 
     if (parentFolder.endsWith("+")) {
@@ -164,6 +165,10 @@ function processUrlParts(urlParts: string[], isBlog: boolean): string[] {
 
     if (!isBlog) {
         urlParts = urlParts.map(part => removeNumberPrefix(part));
+    }
+    
+    if (anchor) {
+      urlParts[urlParts.length - 1] = urlParts[urlParts.length - 1] + "#" + anchor.split("%20").join("-").toLowerCase();
     }
 
     return urlParts;
