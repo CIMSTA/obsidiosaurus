@@ -27,7 +27,7 @@ export class MarkdownFile {
 			this.dateModified = fs
 				.statSync(this.absolutepath)
 				.mtime.toISOString();
-			//console.log(`Last modified date for ${this.path}: ${this.dateModified}`);
+			//console.log(`Last modified date for ${this.path}: ${this.dateModified}`);.
 		} catch (error) {
 			console.error(
 				`Error getting last modified date for ${this.absolutepath}: ${error}`
