@@ -107,21 +107,21 @@ const convertAdmonition = (line: string, isInAdmonition: boolean, isInQuote: boo
 };
 
 function checkForLinks(line: string): string {
-    const pattern = /\[([^\]]+)\]\(([^)]+)\)/;
-    const match = line.match(pattern);
+    const pattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const matches = [...line.matchAll(pattern)];
 
-    if (match) {
+    return matches.reduce((processedLine, match) => {
 
         const url = match[2];
 
         // keep external links as is
         if (url.includes("http")) {
-            return line;
+            return processedLine;
         // only continue with internal links
         } else {
             const urlParts = url.split("/");
 
-            if (urlParts.length <= 1) return line;
+            if (urlParts.length <= 1) return processedLine;
 
             let mainFolder = urlParts[0];
 
@@ -135,10 +135,9 @@ function checkForLinks(line: string): string {
             const processedUrlParts = processUrlParts(urlParts, isBlog);
 
             const newUrl = "/" + processedUrlParts.join("/");
-            return line.replace(url, newUrl);
+            return processedLine.replace(url, newUrl);
         }
-    }
-    return line
+    }, line);
 }
 
 function processUrlParts(urlParts: string[], isBlog: boolean): string[] {
