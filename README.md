@@ -10,6 +10,24 @@ _<p align="center">Obsidian + Docusaurus = Where your Obsidian notes meet the we
   <a href=""><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" /></a>
   </p>
 
+> [!WARNING]
+> ## This project is deprecated
+> Obsidiosaurus is no longer actively maintained.
+>
+> I am no longer using this project myself, so I will not be developing it further.
+>
+> A community-maintained fork is available here:
+> **https://github.com/KenBlasse/obsidiosaurus**
+>
+> The fork includes:
+> - Docusaurus v3 support
+> - GraphicsMagick replaced with the Canvas API
+> - no native dependencies
+> - TypeScript 5.4
+> - fixes for asset paths, ENOENT issues, and orphaned files on rename
+>
+> Thanks to [KenBlasse](https://github.com/KenBlasse) for continuing the project.
+
 # 👋 Introduction
 
 Obsidiosaurus is a converter for [Obsidian](https://obsidian.md/) markdown notes to the static site builder [Docusaurus](https://docusaurus.io/)
